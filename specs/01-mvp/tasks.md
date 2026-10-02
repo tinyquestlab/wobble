@@ -2339,3 +2339,33 @@ One commit each. Desk-check tasks commit their answers into `learnings.md`.
         `var/events` had `asking` (agent `a06127c3…`) then `needs`; the log said `queued needs ·
         65b7 … — a subagent asks it, so only its answer counts` (14:00:11), two beats, then
         `resolved … answered where it asked` and the catch at 14:00:14, on the yes.
+- [x] **72 — A permission question beats as it shows, not 6 s later.** Seen at the desk
+      2026-10-02, on task 71's test: "the needs takes a few seconds to come, after the question
+      was already on screen".
+      - Why: Claude Code sends the `permission_prompt` Notification on a timer, 6 s after the
+        prompt shows, and clears it if the prompt is answered first (`nDt=6000`, read in the
+        2.1.287 binary). Every `needs` from a permission prompt was 6 s late, and one answered
+        sooner never beat at all.
+      - Rule: the `asking` line (task 71's `PermissionRequest`, which fires as the prompt shows)
+        is the needs itself. `hook_event.sh` now keeps everything before `tool_input` instead of
+        three fields, so the line also carries `cwd` and `transcript_path` to name the project.
+        The later Notification for the same tool is its notice and is skipped
+        (`hooks.restates`, replacing task 71's `asked_by`): the log says `its notice`. A
+        Notification with no `asking` before it — an idle reminder, a host with no
+        `PermissionRequest` — queues as before. Restored lines take the same path (`recall`).
+      - Accepted risk: an `asking` whose prompt never shows (a hook or mode that allows it
+        silently) beats until the next Stop or answer. Not seen yet; left to be seen.
+      - Also: task 65's limit, a Bash approved before its Notification was read, is gone — the
+        Bash start is now measured from the `asking`.
+      - Checked: `check_hooks` both fixtures as needs with their project, `restates` rows and 3
+        mutants, `KIND_OF` without `asking`, and the script cut back to task 71's three fields;
+        `check_criteria` task 71's episode with one queue and one `its notice`, and a task 72
+        episode (an `asking` alone beats, and its tool answers it). `check_daemon_edges` all
+        202 rows on tasks 72 and 73's code together, run silent (an `afplay` stand-in first
+        in `PATH`).
+      - Desk, 2026-10-02, step 29, a main-thread Bash in a VS Code session: `queued needs · 18a8`
+        at 15:38:28 and 15:38:49, each `its notice` 6 s on and one needs only; at 16:34:16 one
+        answered in 3 s beat and was caught at 16:34:19 with no Notification at all — before
+        this task it would never have beaten.
+      - Open: whether AskUserQuestion fires `PermissionRequest`. Not measured: step 29's ask left
+        no line in `var/events`. Without it, its needs is still 6 s late, as before.

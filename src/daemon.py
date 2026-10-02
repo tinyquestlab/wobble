@@ -56,8 +56,8 @@ from .core.attention import Attention, Silenced, Standing, Taken
 # keep in step. It is imported rather than redefined for that reason alone.
 from .core.ladder import CRY, ROOT, Ladder, load as load_ladder
 from .core.signals import TERMINAL, VSCODE, WARP, Entry, Kind, Queue, Waiting
-from .hooks import (BASH, EVENTS, HookLine, Running, Tail, Titles, answers, asked_by, parse,
-                    registry, running, runs_bash, short, wiring)
+from .hooks import (BASH, EVENTS, HookLine, Running, Tail, Titles, answers, parse,
+                    registry, restates, running, runs_bash, short, wiring)
 from .ball.button import HOLD_S
 from .mirrors.ball import Ball
 from .mirrors.menubar import Menubar
@@ -168,7 +168,8 @@ def recall(lines: list[str], queue: Queue, at: float,
 
     `asked` is filled with the tool each session last asked about, so a needs
     that comes back can still be answered where it was asked (task 49), and
-    `asker` with which agent asked it (task 71).
+    `asker` with which agent asked it (task 71). A question's own notice is
+    skipped here as it is live (task 72).
     """
     tabs: dict[str, str] = {}
     asked = {} if asked is None else asked
@@ -180,18 +181,20 @@ def recall(lines: list[str], queue: Queue, at: float,
             continue
         if hook.focus_url:
             tabs[hook.session] = hook.focus_url
-        if hook.what == "asking":
-            asking[hook.session] = hook
-            continue
         if hook.what == "answered":
             entry = queue.get(hook.session)
             if (answers(hook, asked.get(hook.session, ""), asker.get(hook.session, ""))
                     and entry is not None and entry.kind is Kind.NEEDS):
                 queue.drop_session(hook.session)
+                asking.pop(hook.session, None)
             continue
-        pending = asking.pop(hook.session, None)
-        asked[hook.session] = hook.tool if hook.what == "needs" else ""
-        asker[hook.session] = asked_by(pending, hook) if hook.what == "needs" else ""
+        if restates(hook, asking.pop(hook.session, None)):
+            continue
+        if hook.what == "asking":
+            asking[hook.session] = hook
+        needs = hook.what in ("needs", "asking")
+        asked[hook.session] = hook.tool if needs else ""
+        asker[hook.session] = hook.agent if needs else ""
         if hook.what in ("prompt", "end"):
             queue.drop_session(hook.session)
             continue
@@ -1262,8 +1265,8 @@ async def run(args) -> int:
     # followed it (task 49): what an `answered` line has to match.
     asked: dict[str, str] = {}
     # Which agent asked it, `""` for the main thread (task 71): an `answered`
-    # has to come from the same one. Filled from the `asking` line held in
-    # `asking` until the needs behind it arrives.
+    # has to come from the same one. `asking` holds the line that queued a
+    # question until its notice, 6 s on, is seen and skipped (task 72).
     asker: dict[str, str] = {}
     asking: dict[str, HookLine] = {}
     # When each session's Bash question was read, in epoch seconds like a
@@ -1408,6 +1411,7 @@ async def run(args) -> int:
             typed_at = now
         asked.pop(session, None)
         asker.pop(session, None)
+        asking.pop(session, None)
         asked_at.pop(session, None)
         answered = attention.replied(session, now)
         if answered.dropped is not None:
@@ -1470,11 +1474,6 @@ async def run(args) -> int:
                 continue
             if hook.focus_url:
                 tabs[hook.session] = hook.focus_url
-            if hook.what == "asking":
-                # Held for the needs that follows it, and said by that needs;
-                # above `name_tab` for the same reason as `answered` (task 71).
-                asking[hook.session] = hook
-                continue
             if hook.what == "answered":
                 # One of these per tool call, so one that answers nothing says
                 # nothing — and it is above `name_tab` because its line carries
@@ -1484,7 +1483,15 @@ async def run(args) -> int:
                     continue
                 replied(hook.session, "answered where it asked")
                 continue
-            pending = asking.pop(hook.session, None)
+            if restates(hook, asking.pop(hook.session, None)):
+                # Claude Code's notice of a question already beating since its
+                # `asking` (task 72): queued again, one question would be two needs.
+                say("its notice", f"needs · {short(hook.session)} — Claude Code's own, 6s "
+                                  f"after the question it already queued",
+                    project=hook.project)
+                continue
+            if hook.what == "asking":
+                asking[hook.session] = hook
             name_tab(hook.session, hook.project, hook.host)
             if hook.what == "prompt" and not hook.by_person:
                 # Not a person arriving, so it resolves nothing (criterion 5).
@@ -1558,8 +1565,7 @@ async def run(args) -> int:
                 if event.kind is Kind.DONE and event.session in prompted_at:
                     event = replace(event, turn_s=now - prompted_at.pop(event.session))
                 asked[event.session] = hook.tool if event.kind is Kind.NEEDS else ""
-                asker[event.session] = (asked_by(pending, hook)
-                                        if event.kind is Kind.NEEDS else "")
+                asker[event.session] = hook.agent if event.kind is Kind.NEEDS else ""
                 if asked[event.session] == BASH:
                     asked_at[event.session] = time.time()
                 look(event.session, event.project)

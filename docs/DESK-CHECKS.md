@@ -631,6 +631,21 @@ venv/bin/python3 -m src.daemon          # the real thing
     before a permission `needs`, which means the host fires them the other way round and the
     question falls back to the main thread's rule.
 
+29. **A permission question beats as it shows** (task 72). From a real session, with the hooks of
+    step 28:
+    - **Ask for a Bash no rule allows.** The beat starts with the prompt on screen, not 6 s later:
+      the log's `queued needs` line has the second of the `asking` line in `var/events`.
+    - **Leave it unanswered for 10 s.** At about 6 s the log says `its notice needs · … — Claude
+      Code's own`, and the menu still shows one needs, not two.
+    - **Answer one within 6 s.** It beats, and the yes resolves it with the catch; no `its notice`
+      follows.
+    - **Ask with AskUserQuestion.** Note whether `var/events` has an `asking` line for it. If not,
+      its needs still comes 6 s late, as before — not a defect of this step, but say so in task 72.
+
+    **What would be a defect:** a beat that starts only at the notice; two needs for one question;
+    a needs still beating after a quick yes; a prompt never shown that beats on (the risk task 72
+    accepted — write down what asked).
+
 ### When your own eye is the instrument, point a camera at it
 
 Steps 1 and 2 are about light and about time, and both are things a person watching is bad at:

@@ -63,7 +63,10 @@ PROJECTS = Path(os.path.expanduser("~/.claude/projects"))
 # carries `agent_id` when a subagent asks, none when the main thread does
 # (measured 2026-10-02 on 2.1.286, a `claude -p` in the scratchpad;
 # `var/desk/payloads/perm-main-01.json`, `perm-sub-01.json`). A hook that writes
-# nothing on stdout decides nothing, so the prompt shows as before.
+# nothing on stdout decides nothing, so the prompt shows as before. Since task 72
+# it is the question itself: the `Notification` is Claude Code's notice of it,
+# sent 6 s later and only if nobody answered (`nDt=6000`, read in the 2.1.287
+# binary), and those 6 s were a needs beating late.
 HOOK_FOR = {
     "Stop": "done",
     "StopFailure": "failed",
@@ -75,12 +78,13 @@ HOOK_FOR = {
     "PermissionRequest": "asking",
 }
 
-# Four words are deliberately absent, and for the same reason: none is a thing
+# Three words are deliberately absent, and for the same reason: none is a thing
 # being said. `prompt` and `answered` resolve a signal and `end` stops one
-# waiting — all act on the queue rather than joining it — and `asking` only
-# names who asks the needs that follows it (task 71), so `as_event` hands back
-# `None` for them and the daemon handles each on its own branch.
-KIND_OF = {"done": Kind.DONE, "failed": Kind.DONE, "needs": Kind.NEEDS}
+# waiting — all act on the queue rather than joining it, so `as_event` hands
+# back `None` for them and the daemon handles each on its own branch. `asking`
+# is a needs (task 72): the question, as it shows.
+KIND_OF = {"done": Kind.DONE, "failed": Kind.DONE, "needs": Kind.NEEDS,
+           "asking": Kind.NEEDS}
 
 # A lone opening tag on the first line — `<task-notification>`, and whatever
 # else Claude Code wraps an injected turn in.
@@ -215,8 +219,8 @@ def answers(line: HookLine, asked_for: str, asker: str = "") -> bool:
     Only the same tool, run by the same agent that asked (tasks 49, 71) —
     `asker` is `""` for the main thread. A `Notification` carries no `agent_id`
     (the base input is built without one, 2.1.160 and 2.1.286), so who asked
-    comes from the `asking` line just before it; without one, the main thread
-    is assumed, as before task 71. Taking any agent's tool as an answer would
+    comes from the `asking` line that queued the question; a needs with none,
+    the main thread is assumed, as before task 71. Taking any agent's tool as an answer would
     let a background agent running Bash clear the question the main thread is
     still waiting on; taking only the main thread's left a subagent's approved
     Bash beating on through every one of its `answered` lines (juno,
@@ -226,17 +230,17 @@ def answers(line: HookLine, asked_for: str, asker: str = "") -> bool:
             and bool(line.tool) and line.tool == asked_for)
 
 
-def asked_by(asking: HookLine | None, needs: HookLine) -> str:
-    """Who asks this `needs`: the agent of the `asking` line before it, or `""` (task 71).
+def restates(needs: HookLine, asking: HookLine | None) -> bool:
+    """Is this `needs` Claude Code's notice of the question `asking` already queued? (task 72)
 
-    Only an `asking` about the same tool counts. Anything else — none at all
-    (hooks wired before task 71, a host that never fires it), or one about
-    another tool — is the main thread, as it was before; a subagent's question
-    read that way stays waiting until the next Stop, the loud direction.
+    The notice follows its `PermissionRequest` by 6 s when nobody answered, with
+    the same tool and nothing new, so it adds nothing but a second beat. Only
+    the same tool counts: one about another tool, or a needs with no `asking`
+    before it (hooks wired before task 71, a host that never fires it), is a
+    question of its own, queued as before — the loud direction.
     """
-    if asking is None or not needs.tool or asking.tool != needs.tool:
-        return ""
-    return asking.agent
+    return (needs.what == "needs" and not needs.reminder and asking is not None
+            and bool(needs.tool) and asking.tool == needs.tool)
 
 
 # The one tool whose start can be seen from outside (task 65): what a `needs`
