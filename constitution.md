@@ -67,8 +67,9 @@ Explicitly out of scope, so that scope creep has to argue with this file:
 - No gestures, no motion input, no controller emulation.
 - No Windows or Linux implementation — the seam only.
 - No automated test suite.
-- No PR flow, no release. Commits pushed when I choose. A `.app` built on this Mac from the repo,
-  for this Mac, is not a release: no installer, no signing, no notarization, no updates.
+- No PR flow. Commits pushed when I choose. A release is the source, tagged, with notes on GitHub —
+  nothing built ships with it: no installer, no signing, no notarization, no updates. A `.app` is
+  built on each Mac from the repo, for that Mac.
 
 ## Amendment
 
@@ -82,3 +83,7 @@ change of direction, not a refactor.
 - 2026-10-02 — the repository may have a remote and be public, free and non-commercial
   (`LICENSE`, `NOTICE.md`). Publishing the source is not a release: still no installer, no
   signing, no notarization, no updates.
+- 2026-10-02 — wobble has releases, starting at 0.1.0 beta: a git tag `vX.Y.Z` (with `-beta`
+  while it is one) and a GitHub Release of the source with notes. Still no installer, no signing,
+  no notarization, no updates, and no `.app` attached: a permission grant is pinned to the
+  launcher's bytes (`tools/build_app.py`), so the app is built on the Mac that runs it.
