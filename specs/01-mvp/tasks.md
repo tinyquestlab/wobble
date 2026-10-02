@@ -2369,3 +2369,22 @@ One commit each. Desk-check tasks commit their answers into `learnings.md`.
         this task it would never have beaten.
       - Open: whether AskUserQuestion fires `PermissionRequest`. Not measured: step 29's ask left
         no line in `var/events`. Without it, its needs is still 6 s late, as before.
+- [x] **73 — A done ends its session's question.** Seen at the desk 2026-10-02, on task 72's
+      test: "I answered, but the needs came back".
+      - Why: the answer was a denial of a subagent's Bash (14:22:53, the transcript's `Request
+        interrupted by user for tool use`). A denial runs no tool, so no `answered` came; the
+        Stop at 14:22:57 queued a `done` beside the needs being attended, which broke out at
+        14:23:06. Older than task 72 — nothing ever ended a held needs on a done — but task 72
+        makes it likelier: a quick denial now has a needs to leave behind.
+      - Rule: a `done` (Stop or StopFailure) for a session whose `needs` is queued or held
+        resolves it first, `resolved needs · … — its turn ended`, with the catch; then the done
+        is queued. A turn that ended asks nothing any more, and a denial is an answer (task 65).
+        Unlike task 49's answer, it does not arm task 53's after-typing hold: the Stop is not a
+        hand at the keyboard.
+      - Checked: `check_criteria` a task 73 episode — a held needs and a queued one end with
+        their turn, each done still queued, another session's needs untouched — and a second
+        one where the done cries after the catch, not held as typing; that row fails with the
+        hold armed (mutant run by hand). `check_daemon_edges` all 202 rows.
+      - Desk, 2026-10-02, step 29: a `general-purpose` agent's Bash, denied — `queued needs ·
+        18a8 … a subagent asks it` at 15:39:28, then `resolved needs · 18a8 — its turn ended`
+        and the done at 15:39:40. It did not come back.

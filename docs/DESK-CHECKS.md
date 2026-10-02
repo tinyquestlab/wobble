@@ -639,12 +639,14 @@ venv/bin/python3 -m src.daemon          # the real thing
       Code's own`, and the menu still shows one needs, not two.
     - **Answer one within 6 s.** It beats, and the yes resolves it with the catch; no `its notice`
       follows.
+    - **Deny one** (task 73). The beat stops when the turn ends: `resolved needs · … — its turn
+      ended`, the catch, and the done after it. The needs does not come back.
     - **Ask with AskUserQuestion.** Note whether `var/events` has an `asking` line for it. If not,
       its needs still comes 6 s late, as before — not a defect of this step, but say so in task 72.
 
     **What would be a defect:** a beat that starts only at the notice; two needs for one question;
-    a needs still beating after a quick yes; a prompt never shown that beats on (the risk task 72
-    accepted — write down what asked).
+    a needs still beating after a quick yes, or back after a denial; a prompt never shown that
+    beats on (the risk task 72 accepted — write down what asked).
 
 ### When your own eye is the instrument, point a camera at it
 

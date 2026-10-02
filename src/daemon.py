@@ -1401,13 +1401,17 @@ async def run(args) -> int:
                             f"left in it to attend",
                 project=over.released.project)
 
-    def replied(session: str, how: str) -> None:
-        """Its question was answered where it was asked (task 49), said as `how`."""
+    def replied(session: str, how: str, typed: bool = True) -> None:
+        """Its question was answered where it was asked (task 49), said as `how`.
+
+        `typed` is False when no hand is known to have been at it: a turn's end
+        says the question is over, not that somebody just answered (task 73).
+        """
         nonlocal typed_at
         # Answering in place is a hand at the keyboard as much as a prompt
         # is (task 53): at 16:24:19 on 2026-09-29 the next `done` cried in
         # the same second the question was answered. Armed as `prompt` arms it.
-        if typed_at is None or now >= typed_at + ladder.after_prompt_s:
+        if typed and (typed_at is None or now >= typed_at + ladder.after_prompt_s):
             typed_at = now
         asked.pop(session, None)
         asker.pop(session, None)
@@ -1564,6 +1568,13 @@ async def run(args) -> int:
             if event is not None:
                 if event.kind is Kind.DONE and event.session in prompted_at:
                     event = replace(event, turn_s=now - prompted_at.pop(event.session))
+                if event.kind is Kind.DONE and any(
+                        entry is not None and entry.session == event.session
+                        and entry.kind is Kind.NEEDS
+                        for entry in (queue.get(event.session), attention.entry)):
+                    # A turn that ended asks nothing any more (task 73): a denial
+                    # runs no tool, so its Stop is the only word that it is over.
+                    replied(event.session, "its turn ended", typed=False)
                 asked[event.session] = hook.tool if event.kind is Kind.NEEDS else ""
                 asker[event.session] = hook.agent if event.kind is Kind.NEEDS else ""
                 if asked[event.session] == BASH:
