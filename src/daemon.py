@@ -54,7 +54,7 @@ from .core.attention import Attention, Silenced, Standing, Taken
 # `CRY` moved into `core.ladder` in task 24: the config names the same file
 # (`"mac_sound": "@cry"`), and two definitions of one path are two things to
 # keep in step. It is imported rather than redefined for that reason alone.
-from .core.ladder import CRY, load as load_ladder
+from .core.ladder import CRY, ROOT, Ladder, load as load_ladder
 from .core.signals import TERMINAL, VSCODE, WARP, Entry, Kind, Queue, Waiting
 from .hooks import (BASH, EVENTS, Running, Tail, Titles, answers, parse, registry,
                     running, runs_bash, short, wiring)
@@ -783,6 +783,50 @@ async def keys(press: asyncio.Event, hold: asyncio.Event) -> None:
     threading.Thread(target=read, name="keys", daemon=True).start()
 
 
+# Your own Mac sounds (task 70): a file here named after a kind or an outcome
+# plays instead of the config's, on the Mac only. The ball keeps its own
+# effects and a Pokémon's cry, so what sounds in your hand is never whatever
+# file someone dropped in. `silenced` is not a name: a silence that chimes is
+# not one (task 68).
+OWN_SOUNDS = ROOT / "assets" / "sounds"
+OWN_NAMES = (Kind.NEEDS.value, Kind.DONE.value, "caught", "broke_out")
+# What `afplay` reads. In this order, so two files with one name are settled
+# the same way every run.
+OWN_TYPES = (".wav", ".aiff", ".aif", ".m4a", ".mp3", ".caf")
+
+
+def own_sounds(ladder: Ladder, folder: Path = OWN_SOUNDS) -> tuple[Ladder, list[str], list[str]]:
+    """The ladder with your own Mac sounds in it: `(ladder, used, ignored)`.
+
+    Here and not in the core, which does not touch a filesystem (`_mac_sound`).
+    Only `mac_sound` changes, so a mute still takes it out (`Ladder.muted`) and
+    the ball, which reads `effect`, never hears of it. Anything in the folder
+    that is not a name and a type above is listed back, never guessed at: a
+    `need.wav` that plays nothing has to say why (principle 7).
+    """
+    if not folder.is_dir():
+        return ladder, [], []
+    found: dict[str, Path] = {}
+    ignored: list[str] = []
+    for path in sorted(folder.iterdir(), key=lambda p: (OWN_TYPES.index(p.suffix.lower())
+                                                        if p.suffix.lower() in OWN_TYPES
+                                                        else len(OWN_TYPES), p.name)):
+        if path.name.startswith("."):
+            continue
+        if not (path.is_file() and path.stem in OWN_NAMES and path.suffix.lower() in OWN_TYPES):
+            ignored.append(path.name)
+        elif path.stem in found:
+            ignored.append(f"{path.name} ({found[path.stem].name} plays)")
+        else:
+            found[path.stem] = path
+    voices = {kind: replace(voice, mac_sound=str(found[kind.value]))
+              if kind.value in found else voice for kind, voice in ladder.voices.items()}
+    outcomes = {name: replace(voice, mac_sound=str(found[name]))
+                if name in found else voice for name, voice in ladder.outcomes.items()}
+    used = [f"{name} {path.name}" for name, path in found.items()]
+    return replace(ladder, voices=voices, outcomes=outcomes), used, ignored
+
+
 def claim(events: Path):
     """Take the one lock a daemon on `events` may hold: `(ok, handle, why)`.
 
@@ -842,6 +886,15 @@ async def run(args) -> int:
     ladder = load_ladder(cry=args.cry)
     for warning in ladder.warnings:
         say("CONFIG", warning)
+    # Said only when the folder holds something: the run without it is the
+    # ordinary one, and a file that plays nothing must not pass unseen (task 70).
+    ladder, own, not_own = own_sounds(ladder)
+    if own:
+        say("your sounds", f"on the Mac only, from {OWN_SOUNDS}: " + " · ".join(own))
+    if not_own:
+        say("NOT YOUR SOUNDS", f"{', '.join(not_own)} in {OWN_SOUNDS} play for nothing: "
+                               f"a file there is named {', '.join(OWN_NAMES)}, as "
+                               f"{', '.join(OWN_TYPES)}")
 
     queue = Queue()
     snooze = args.snooze if args.snooze else ladder.snooze_s
@@ -1895,9 +1948,17 @@ def main(argv=None) -> int:
     ap.add_argument("--cry", default=str(CRY), metavar="WAV",
                     help=f"the voice a done is signalled with — the resource uploaded "
                          f"to the ball, and the file the Mac plays when there is no "
-                         f"ball (default: {CRY.name}; assets/cries/ is gitignored and "
-                         f"filled at install time)")
+                         f"ball (default: {CRY.name}). Only a cry fetched into "
+                         f"{CRY.parent.relative_to(ROOT)}/ — gitignored and filled at "
+                         f"install time")
     args = ap.parse_args(argv)
+    # Only a Pokémon's cry goes to the ball (task 70): it is what sounds in
+    # your hand, and wobble's name is on it. Your own sounds are the Mac's,
+    # in assets/sounds/.
+    if not Path(args.cry).resolve().is_relative_to(CRY.parent.resolve()):
+        ap.error(f"--cry {args.cry} is not in {CRY.parent}: the ball speaks only with a "
+                 f"cry fetched there (tools/fetch_cry.py). A sound of your own goes in "
+                 f"{OWN_SOUNDS}, for the Mac only")
     try:
         return asyncio.run(run(args))
     except KeyboardInterrupt:

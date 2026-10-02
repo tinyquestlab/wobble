@@ -3,11 +3,14 @@
 
     venv/bin/python3 tools/fetch_cry.py                 # Pikachu, into assets/cries/
     venv/bin/python3 tools/fetch_cry.py --force         # replace a cry already there
-    venv/bin/python3 tools/fetch_cry.py --from my.ogg   # convert a local file instead
 
 **The cry is never in this repository** (NOTICE.md). It is downloaded from
 PokeAPI's cries collection onto the machine doing the install and written to
 `assets/cries/`, which git ignores.
+
+Only a Pokémon's cry, from that collection, and no file of your own: the ball
+is what sounds in your hand, and wobble's name is on it (task 70). A sound of
+your own is the Mac's, in `assets/sounds/` (README, "Your own sounds").
 
 The ball plays one format only — MS ADPCM, 16 kHz, mono, 512-byte blocks — and
 a file that is nearly right comes out of it as silence, not as an error
@@ -53,8 +56,9 @@ def download(dex: int, into: Path) -> Path:
         with urllib.request.urlopen(url, timeout=30) as reply:
             path.write_bytes(reply.read())
     except (urllib.error.URLError, OSError) as exc:
-        sys.exit(f"fetch_cry: could not download {url} — {exc}. Check the network, or "
-                 f"convert a file you already have with --from.")
+        sys.exit(f"fetch_cry: could not download {url} — {exc}. Check the network "
+                 f"and run this again; wobble works without a cry, using the ball's "
+                 f"built-in sounds.")
     return path
 
 
@@ -96,8 +100,6 @@ def main() -> int:
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--dex", type=int, default=PIKACHU,
                     help="which Pokémon's cry, by National Dex number (default: 25, Pikachu)")
-    ap.add_argument("--from", dest="source", type=Path,
-                    help="convert this local audio file instead of downloading")
     ap.add_argument("--out", type=Path, default=OUT,
                     help=f"where to write it (default: {OUT.relative_to(ROOT)})")
     ap.add_argument("--force", action="store_true", help="replace a cry already there")
@@ -110,12 +112,10 @@ def main() -> int:
     if not ffmpeg:
         sys.exit("fetch_cry: ffmpeg not found. Install it (brew install ffmpeg) and run "
                  "this again; wobble works without a cry, using the ball's built-in sounds.")
-    if args.source is not None and not args.source.is_file():
-        sys.exit(f"fetch_cry: {args.source} is not a file")
 
     with tempfile.TemporaryDirectory() as tmp:
         work = Path(tmp)
-        source = args.source or download(args.dex, work)
+        source = download(args.dex, work)
         wav = convert(source, ffmpeg, work)
     why = problem(wav)
     if why:

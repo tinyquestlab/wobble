@@ -23,6 +23,10 @@ comes down. No argument.
   belongs to its rights holders; it never leaves your machine.
 - **The ball's built-in sounds and lights** are the ball's own. wobble sends a number and the ball
   plays what its firmware already holds; nothing is copied from it.
+- **The Mac's sounds** in `sounds/` are drawn in code from noise and sine tones, given only two
+  measurements of the matching moment in the game: how loud it is per third of an octave, and how
+  its loudness moves every 5 ms. No sample of the game is in them (`sounds/README.md`). A sound
+  you add yourself goes in `assets/sounds/`, which git ignores, and plays on your Mac only.
 - **The menu bar's ball** is drawn in code (`src/platform_seam/macos.py`), not traced from any
   game asset.
 - **The sniffer capture** that settled the protocol is a recording of a real Switch talking to a

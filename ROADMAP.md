@@ -73,6 +73,16 @@ and more in the future. One window for what today lives in flags and in
 
 "No window" is a non-goal of the MVP, so this needs an amendment to `constitution.md` first.
 
+## Not placed yet — picking sounds from the menu
+
+Asked for 2026-10-02 (task 70): today your own Mac sounds are files dropped in `assets/sounds/`.
+A **Sounds ›** submenu would list, for each of `needs`, `done`, `caught` and `broke_out`, wobble's
+own, a few of the Mac's, and "Choose a file…", which copies the file into that folder. The rule
+does not move with it: what is chosen there plays on the Mac only, and the ball keeps its own
+effects and a Pokémon's cry. "Choose a file…" opens the system's own file dialog: whether that
+is a window under the MVP's "no window" is for `constitution.md` to say before this is built.
+Which cry the ball speaks with stays phase 05's.
+
 ## Not placed yet — a floating ball
 
 Asked for 2026-09-30: wobble could have a floating ball on screen that does what the menu bar ball does (task 58). It is for people who do not have the ball yet, so

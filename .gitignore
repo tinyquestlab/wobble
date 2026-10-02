@@ -15,6 +15,10 @@ var/
 assets/cries/
 *.wav
 *.adpcm
+# Your own Mac sounds, whatever they are, stay yours. sounds/ is wobble's own:
+# drawn in code, no Nintendo audio in them (sounds/README.md).
+assets/sounds/
+!/sounds/*.wav
 
 # Recordings, including of the ball driven by the game. docs/ is where a
 # reference lives so it stays findable (CLAUDE.md); that is not the same as

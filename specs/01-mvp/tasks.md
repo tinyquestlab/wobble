@@ -2277,3 +2277,35 @@ One commit each. Desk-check tasks commit their answers into `learnings.md`.
         `check_raise` three more rows and 1 mutant. Seen live at 17:17:32: `no window of Code on
         this desktop names 'workspace', so … was opened in it and '…' came forward; then Code
         opened vscode://…`.
+
+- [x] **70 — The Mac's own sounds for a needs and a catch, yours on top, and the ball kept to
+      cries.** Asked at the desk 2026-10-02, after a video of *Pokémon: Let's Go*'s throw,
+      wobbles and catch: the Mac's Tink and Hero should sound like the game. Then, on whether
+      the game's own audio could ship: "for now we ship what causes no trouble and keep local
+      what we chose", and "on the ball, only Pokémon sounds … thinking of the brand, Nintendo
+      etc., nobody wants a Poké Ball tied to a moan, a war cry, a religion".
+      - Rule 1, wobble's own: `sounds/needs.wav` (0.450 s) and `sounds/caught.wav` (0.220 s),
+        drawn in code from two measurements of the game's wobble and click: third-octave levels
+        and the 5 ms loudness curve. No sample of the game is in them; their waveforms correlate
+        with the game's at +0.04 and −0.13. The tool reads game footage, so it stays out of the
+        repo. `config/signals.json` names them by a relative path, which `ladder._mac_sound`
+        reads against the checkout. `broke_out` keeps Basso until its sound is measured the same
+        way.
+      - Rule 2, yours: a file in `assets/sounds/` (gitignored) named `needs`, `done`, `caught` or
+        `broke_out` replaces that one's Mac sound (`daemon.own_sounds`). Only `mac_sound`
+        changes, so a mute still takes it out and the ball never hears of it. `silenced` is not
+        a name (task 68). Used files are said as `your sounds`, and anything else in the folder
+        as `NOT YOUR SOUNDS`.
+      - Rule 3, the ball keeps to cries: `--cry` is refused unless it is in `assets/cries/`, a
+        `..` walk out included, and `fetch_cry.py` loses `--from`, so a cry is a Pokémon's from
+        PokeAPI's collection. Which one stays Pikachu until phase 05.
+      - Checked: `check_own_sounds` (new) the shipped paths, the override, the names refused,
+        the mute, the `--cry` gate, and 3 mutants; `check_ladder` the new paths;
+        `check_daemon_edges` the "another --cry" leg on Pidgey's fetched cry; `check_mute`,
+        `check_menubar`, `check_cries`, `check_ladder_refusals` match.
+      - The menu picker went to the ROADMAP.
+      - Desk, 2026-10-02, step 27: a real `needs` and its answer with no ball, after a restart
+        that said `your sounds … caught caught.wav · needs needs.wav` (12:48:42); beats at
+        12:49:12–17 and the catch at 12:49:20 played the game's cut from `assets/sounds/`. The
+        shipped pair was heard by `afplay` alone. An earlier listen played Tink: the app had
+        been running since 08:38, so it held the old config, which only a restart reloads.

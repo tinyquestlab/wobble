@@ -56,10 +56,10 @@ CONFIG = Path(__file__).resolve().parents[2] / "config" / "signals.json"
 # daemon because the config refers to it by name: `"mac_sound": "@cry"` is how
 # a kind says *whatever voice the ball is using*, so the two can never drift
 # apart by editing one of them. `--cry` overrides both at once.
-CRY = Path(__file__).resolve().parents[2] / "assets" / "cries" / "pikachu.wav"
+ROOT = Path(__file__).resolve().parents[2]
+CRY = ROOT / "assets" / "cries" / "pikachu.wav"
 
-# What that looks like in the config file. A path would have to be absolute
-# (the daemon is started from anywhere) and would then be a second copy of the
+# What that looks like in the config file. A path would be a second copy of the
 # same fact, free to disagree with `--cry` — which is exactly the divergence
 # task 24 exists to close.
 CRY_TOKEN = "@cry"
@@ -635,7 +635,9 @@ def _mac_sound(entry: dict, path: Path, where: str,
             f"when this beat should make no sound on the Mac")
     if value == CRY_TOKEN:
         return str(cry)
-    return value
+    # A relative path is the repo's own `sounds/` (task 70): read against this
+    # checkout, since the daemon is started from anywhere.
+    return value if Path(value).is_absolute() else str(ROOT / value)
 
 
 def _every(entry: dict, path: Path, where: str, warnings: list[str]) -> float | None:

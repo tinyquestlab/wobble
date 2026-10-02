@@ -98,8 +98,8 @@ so that is the app to switch on in the list. Started as `wobble.app`, they belon
 | What happened | On the ball | On the Mac, with no ball |
 |---|---|---|
 | **A session finished** | the ring lights Pikachu-yellow and stays lit; Pikachu cries with a light buzz, and once more after 30 s | the Pikachu cry |
-| **A session is waiting on you** (a permission prompt, a question) | a wobble every 1.5 s, until you deal with it | a short tick every 1.5 s |
-| **You answered it** | green, with the catch sound | a rising chime |
+| **A session is waiting on you** (a permission prompt, a question) | a wobble every 1.5 s, until you deal with it | a short wobble every 1.5 s |
+| **You answered it** | green, with the catch sound | the catch's click |
 | **You went to it and left without answering** | red: it broke out, and keeps asking | a low "no" |
 | **You silenced a session** (hold the button) | blue, and a weak tick | nothing |
 
@@ -165,6 +165,26 @@ rm -rf /Applications/wobble.app                       # if you built the app
 Then delete the `wobble` folder, and remove wobble or your terminal from **Accessibility** and
 **Bluetooth** in System Settings if you want those back as they were. The ball keeps the cry and
 the yellow light wobble sent it until a Switch writes its own.
+## Your own sounds
+
+The Mac's sounds can be your own. Put a file in `assets/sounds/`, named after what it plays for,
+and start wobble again:
+
+| File | Plays when |
+|---|---|
+| `needs` | a session is waiting on you, every 1.5 s, so keep it short |
+| `done` | a session finished |
+| `caught` | you answered it |
+| `broke_out` | you went to it and left without answering |
+
+Any of `.wav`, `.aiff`, `.m4a`, `.mp3` or `.caf`, for example `assets/sounds/needs.mp3`. wobble
+says at start which ones it found, and names any file it will not play. Git ignores the folder, so
+your sounds stay on your Mac.
+
+**They are for the Mac only.** The ball always plays its own effects and a Pokémon's cry, never a
+file you add. The sounds wobble ships in [`sounds/`](sounds/README.md) were drawn in code, and
+contain no audio from the game.
+
 
 ## Troubleshooting
 

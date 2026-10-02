@@ -599,6 +599,20 @@ venv/bin/python3 -m src.daemon          # the real thing
     **What would be a defect:** a new VS Code window; the desktop not switching; a `focused`
     beside another folder's title; a `NOT FOCUSED` for a window that did come.
 
+27. **The Mac's own sounds, and yours** (task 70). With no ball (`--no-ball`, or the ball off from
+    the menu), from real sessions only:
+    - **wobble's own.** With `assets/sounds/` empty or absent: a `needs` plays `sounds/needs.wav`,
+      a short wobble, every 1.5 s, and answering it plays `sounds/caught.wav`, the catch's click.
+      Neither runs into the next beat.
+    - **Yours.** A file named `needs` in `assets/sounds/` (any of `.wav .aiff .aif .m4a .mp3 .caf`),
+      then a restart: the banner says `your sounds  … needs needs.wav`, and that file plays for
+      the next `needs`. A file named anything else is said under `NOT YOUR SOUNDS`.
+    - **The ball is untouched.** Connect the ball: the same `needs` wobbles with 199 and a done
+      cries Pikachu, whatever is in `assets/sounds/`.
+
+    **What would be a defect:** Tink or Hero on a fresh checkout; your file playing on the ball;
+    a file in `assets/sounds/` that plays nothing and is not said.
+
 ### When your own eye is the instrument, point a camera at it
 
 Steps 1 and 2 are about light and about time, and both are things a person watching is bad at:
@@ -1274,15 +1288,15 @@ Written down rather than tidied away. Every one of these was a green-looking sys
 - the 5 s a prompt buys (task 25). Asked for as a feeling — "not at the same moment" — and chosen to
   match the cry's own quiet rather than measured against anything. It is the number to turn if the
   ball starts reading as slow, and Part B step 16 is the check that would say so;
-- the Mac's sound for a `needs`, now Tink. Task 24 gave `done` the cry itself — with no ball the
-  Mac plays the same file the ball would have spoken with, so there is nothing left to judge there.
-  A `needs` has no such file: 199 is a firmware effect, its audio is in no capture, and getting it
-  means recording the ball at the desk. Tink is a labelled stand-in until that recording exists.
-  Its predecessor is the warning here: Sosumi's note in the config said it was "short enough not to
-  run into the next beat 1.5 s later, which Submarine and Hero are not", and `afinfo` on 2026-09-23
-  says Sosumi is 1.539 s, Submarine 1.492 s, Hero 1.056 s. Every clause was false, and it read as a
-  measurement for a day. Tink's 0.564 s is measured; that it *reads* as a wobble is a judgement,
-  and it is the one to check against the real recording.
+- the Mac's sound for a `needs` and for a catch (task 70). Task 24 gave `done` the cry itself, so
+  there is nothing to judge there. A `needs` and a catch have no file the ball would have used:
+  199 and 201 are firmware effects, and their audio is in no capture. Since 2026-10-02 the Mac
+  plays wobble's own, `sounds/needs.wav` (0.450 s) and `sounds/caught.wav` (0.220 s), drawn in
+  code from two measurements of the game's wobble and click (`sounds/README.md`). That they
+  *read* as the game's is a judgement made by ear, and the ball's own recording, still never
+  made, is what would settle it. Before them were Tink (0.564 s, a stand-in from the start) and
+  Sosumi, whose note claimed it was short enough for a 1.5 s beat when `afinfo` said 1.539 s.
+  Every clause of that note was false, and it read as a measurement for a day.
 
 **The one open decision is closed.** When B is pressed while already attending, the signal you were
 on goes back into the queue, into the place it had — the same thing the snooze does with a
