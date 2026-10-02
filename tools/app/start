@@ -1,0 +1,16 @@
+#!/bin/sh
+# What wobble.app runs (task 50): the daemon, from this repo's venv.
+#
+# Everything that may change lives here and not in the launcher, because the
+# launcher's bytes are what an ad hoc grant is pinned to (tools/app/launcher.c).
+# Edit this freely; it is read at every launch and never asks again.
+#
+# `exec`, so the daemon is the launcher's own child and hears the signals it
+# passes on. stdin is /dev/null: there is no Enter to press, and the daemon
+# stops reading at end of file. Its output is appended to var/app.out, since an
+# app launched from the Finder has no terminal; the day's log (var/logs) has
+# the same lines, and app.out also catches a traceback the log never saw.
+cd "$(dirname "$0")/../.." || exit 1
+mkdir -p var
+export PYTHONUNBUFFERED=1 PYTHONUTF8=1
+exec venv/bin/python3 -m src.daemon --ask-access "$@" </dev/null >>var/app.out 2>&1
