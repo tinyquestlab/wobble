@@ -7,6 +7,7 @@
 #     hook_event.sh prompt    <- the UserPromptSubmit hook
 #     hook_event.sh end       <- the SessionEnd hook
 #     hook_event.sh answered  <- PostToolUse and PostToolUseFailure (task 49)
+#     hook_event.sh asking    <- PermissionRequest: who asks the needs behind it (task 71)
 #
 # WHICH Claude Code hook passes which word is not this script's business:
 # `src/hooks.py` owns that mapping and `tools/install_hooks.py` asks it. This
@@ -49,6 +50,10 @@
 # text before `tool_input` is looked at, and nothing the tool said can be read
 # as one of them.
 #
+# `asking` gets the same three and nothing else (task 71): its `tool_input` is the
+# command or the file about to be written, and `agent_id` comes before it there
+# too (measured 2026-10-02, 2.1.286).
+#
 # Always exits 0: a hook that can fail is a hook that can block a prompt.
 
 what="$1"
@@ -69,7 +74,7 @@ payload=$(cat)
 # unbounded append is not a queue.
 payload=$(printf '%s' "$payload" | tr -d '\n\r\t' | cut -c1-8000)
 
-if [ "$what" = answered ]; then
+if [ "$what" = answered ] || [ "$what" = asking ]; then
     head=${payload%%\"tool_input\"*}
     sid=$(printf '%s\n' "$head" | sed -n 's/^{"session_id":"\([A-Za-z0-9_-]*\)".*/\1/p')
     tool=$(printf '%s\n' "$head" | sed -n 's/.*"tool_name":"\([A-Za-z0-9_.-]*\)".*/\1/p')

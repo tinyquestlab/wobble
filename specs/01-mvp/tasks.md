@@ -2309,3 +2309,33 @@ One commit each. Desk-check tasks commit their answers into `learnings.md`.
         12:49:12–17 and the catch at 12:49:20 played the game's cut from `assets/sounds/`. The
         shipped pair was heard by `afplay` alone. An earlier listen played Tink: the app had
         been running since 08:38, so it held the old config, which only a restart reloads.
+- [x] **71 — A subagent's permission question is answered by that subagent's tool.** Seen at the
+      desk 2026-10-02: "we have the same problem again, the needs waiting to finish: it is now,
+      but it was already answered" — juno's `needs · attending` stayed after the yes.
+      - Why: the question at 13:19:19 was a subagent's Bash. Task 49 takes only the main
+        thread's tools as answers, because a `Notification` carries no `agent_id` (its input is
+        built with no tool context, read in the 2.1.286 binary), and every `answered` line after
+        it carried `agent_id a19180f4f5c89e0ed` (`var/logs/wobble-2026-10-02.log`).
+      - What can be seen: `PermissionRequest` fires just before the prompt shows, with the tool's
+        context, so a subagent's carries `agent_id` and `agent_type` and the main thread's carries
+        neither. Measured 2026-10-02 with `claude -p` on 2.1.286: PreToolUse, PermissionRequest,
+        PostToolUse per tool, `agent_id` before `tool_input`; the subagent's PostToolUse carried
+        the same id (`var/desk/payloads/perm-main-01.json`, `perm-sub-01.json`). It has no
+        `tool_use_id`.
+      - Rule: `PermissionRequest` is wired as `asking`, trimmed by `hook_event.sh` to the same
+        three fields as `answered`. The daemon holds a session's last `asking`; the `needs` after
+        it takes its agent when both name the same tool (`hooks.asked_by`), and then only an
+        `answered` from that agent with that tool answers it (`hooks.answers`). No `asking`, or
+        one about another tool, is the main thread, as before — loud, not silent. Restored lines
+        take the same path (`recall`).
+      - Limits: only `asking` before `needs` is handled — the order VS Code fires them in
+        (desk, below); another host firing them the other way round falls back to the main
+        thread's rule. Task 65's Bash-start answer still cannot tell agents apart.
+      - Checked: `check_hooks` both fixtures through the real script, the command kept out of the
+        line, `answers` with an asker, `asked_by`, and 4 new mutants; `check_hooks_edges` its
+        parse copy; `check_criteria` a task 71 episode (the main thread's and another subagent's
+        Bash do not answer, the asker's does).
+      - Desk, 2026-10-02, step 28: a `general-purpose` agent's `touch` in a VS Code session.
+        `var/events` had `asking` (agent `a06127c3…`) then `needs`; the log said `queued needs ·
+        65b7 … — a subagent asks it, so only its answer counts` (14:00:11), two beats, then
+        `resolved … answered where it asked` and the catch at 14:00:14, on the yes.

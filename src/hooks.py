@@ -57,6 +57,13 @@ PROJECTS = Path(os.path.expanduser("~/.claude/projects"))
 # ends the turn (measured 2026-09-30 on 2.1.160, a `claude -p` on a model that
 # does not exist; `var/desk/payloads/stopfailure-01.json`). Unwired, that turn
 # ended with nothing said at all. It is a `done` that cries sad.
+#
+# `PermissionRequest` added at task 71: it says WHO is asking, which the
+# `Notification` behind it does not. It fires just before the prompt shows and
+# carries `agent_id` when a subagent asks, none when the main thread does
+# (measured 2026-10-02 on 2.1.286, a `claude -p` in the scratchpad;
+# `var/desk/payloads/perm-main-01.json`, `perm-sub-01.json`). A hook that writes
+# nothing on stdout decides nothing, so the prompt shows as before.
 HOOK_FOR = {
     "Stop": "done",
     "StopFailure": "failed",
@@ -65,12 +72,14 @@ HOOK_FOR = {
     "SessionEnd": "end",
     "PostToolUse": "answered",
     "PostToolUseFailure": "answered",
+    "PermissionRequest": "asking",
 }
 
-# Three words are deliberately absent, and for the same reason: none is a thing
+# Four words are deliberately absent, and for the same reason: none is a thing
 # being said. `prompt` and `answered` resolve a signal and `end` stops one
-# waiting — all act on the queue rather than joining it, so `as_event` hands
-# back `None` for them and the daemon handles each on its own branch.
+# waiting — all act on the queue rather than joining it — and `asking` only
+# names who asks the needs that follows it (task 71), so `as_event` hands back
+# `None` for them and the daemon handles each on its own branch.
 KIND_OF = {"done": Kind.DONE, "failed": Kind.DONE, "needs": Kind.NEEDS}
 
 # A lone opening tag on the first line — `<task-notification>`, and whatever
@@ -91,7 +100,7 @@ SESSION_ID = re.compile(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-
 class HookLine:
     """One line of `var/events`, decoded."""
 
-    what: str                 # "done", "failed", "needs", "prompt", "end" or "answered"
+    what: str                 # "done", "failed", "needs", "prompt", "end", "answered" or "asking"
     session: str
     project: str
     window_hint: str
@@ -107,13 +116,13 @@ class HookLine:
     # Only ever true on a `needs`: Claude Code's idle reminder, not a question.
     # See `reminds` below (task 39).
     reminder: bool = False
-    # The tool a `needs` asked about, or the one an `answered` ran, as
-    # `tool_key` spells it; `""` when the line does not say (task 49).
+    # The tool a `needs` or an `asking` asked about, or the one an `answered`
+    # ran, as `tool_key` spells it; `""` when the line does not say (task 49).
     tool: str = ""
-    # Only ever true on an `answered`: the tool ran inside a subagent, which
-    # carries `agent_id` (task 49). See `asked` below for why that is not read
-    # as an answer.
-    subagent: bool = False
+    # The subagent an `answered` ran in or an `asking` came from, its
+    # `agent_id`; `""` for the main thread and on every other line (tasks 49,
+    # 71). See `answers` below for why only the one that asked can answer.
+    agent: str = ""
 
     def as_event(self, at: float) -> Event | None:
         """The core's `Event`, or `None` when this line is not a signal."""
@@ -200,17 +209,34 @@ def asked(data: dict) -> str:
     return tool_key(match.group(1)) if match else ""
 
 
-def answers(line: HookLine, asked_for: str) -> bool:
-    """Does this `answered` line answer the needs that asked about `asked_for`?
+def answers(line: HookLine, asked_for: str, asker: str = "") -> bool:
+    """Does this `answered` line answer the needs that `asker` asked about `asked_for`?
 
-    Only from the main thread, and only the same tool (task 49). A subagent's
-    `Notification` carries no `agent_id` (the base input is built without one,
-    2.1.160), so its question looks like the main thread's; its tools' lines do
-    carry one. Taking them as answers would let a background agent running Bash
-    clear the question the main thread is still waiting on.
+    Only the same tool, run by the same agent that asked (tasks 49, 71) —
+    `asker` is `""` for the main thread. A `Notification` carries no `agent_id`
+    (the base input is built without one, 2.1.160 and 2.1.286), so who asked
+    comes from the `asking` line just before it; without one, the main thread
+    is assumed, as before task 71. Taking any agent's tool as an answer would
+    let a background agent running Bash clear the question the main thread is
+    still waiting on; taking only the main thread's left a subagent's approved
+    Bash beating on through every one of its `answered` lines (juno,
+    2026-10-02, 13:19–13:21).
     """
-    return (line.what == "answered" and not line.subagent
+    return (line.what == "answered" and line.agent == asker
             and bool(line.tool) and line.tool == asked_for)
+
+
+def asked_by(asking: HookLine | None, needs: HookLine) -> str:
+    """Who asks this `needs`: the agent of the `asking` line before it, or `""` (task 71).
+
+    Only an `asking` about the same tool counts. Anything else — none at all
+    (hooks wired before task 71, a host that never fires it), or one about
+    another tool — is the main thread, as it was before; a subagent's question
+    read that way stays waiting until the next Stop, the loud direction.
+    """
+    if asking is None or not needs.tool or asking.tool != needs.tool:
+        return ""
+    return asking.agent
 
 
 # The one tool whose start can be seen from outside (task 65): what a `needs`
@@ -341,9 +367,10 @@ def parse(line: str) -> HookLine | None:
                     focus_url=focus_url if WARP_URL.fullmatch(focus_url) else "",
                     reminder=what == "needs" and reminds(data),
                     tool=(asked(data) if what == "needs" else
-                          tool_key(str(data.get("tool_name") or "")) if what == "answered"
-                          else ""),
-                    subagent=what == "answered" and bool(data.get("agent_id")))
+                          tool_key(str(data.get("tool_name") or ""))
+                          if what in ("answered", "asking") else ""),
+                    agent=(str(data.get("agent_id") or "")
+                           if what in ("answered", "asking") else ""))
 
 
 class Tail:

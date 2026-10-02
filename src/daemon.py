@@ -56,8 +56,8 @@ from .core.attention import Attention, Silenced, Standing, Taken
 # keep in step. It is imported rather than redefined for that reason alone.
 from .core.ladder import CRY, ROOT, Ladder, load as load_ladder
 from .core.signals import TERMINAL, VSCODE, WARP, Entry, Kind, Queue, Waiting
-from .hooks import (BASH, EVENTS, Running, Tail, Titles, answers, parse, registry,
-                    running, runs_bash, short, wiring)
+from .hooks import (BASH, EVENTS, HookLine, Running, Tail, Titles, answers, asked_by, parse,
+                    registry, running, runs_bash, short, wiring)
 from .ball.button import HOLD_S
 from .mirrors.ball import Ball
 from .mirrors.menubar import Menubar
@@ -155,7 +155,8 @@ def describe(entry: Entry | Waiting | None) -> str:
 
 
 def recall(lines: list[str], queue: Queue, at: float,
-           asked: dict[str, str] | None = None) -> dict[str, str]:
+           asked: dict[str, str] | None = None,
+           asker: dict[str, str] | None = None) -> dict[str, str]:
     """File what `lines` leave pending, saying nothing, and hand back Warp's tabs (task 47).
 
     The loop's own rules — a prompt a person typed or an end takes a session
@@ -166,23 +167,31 @@ def recall(lines: list[str], queue: Queue, at: float,
     away what was still pending while its line said it would come back.
 
     `asked` is filled with the tool each session last asked about, so a needs
-    that comes back can still be answered where it was asked (task 49).
+    that comes back can still be answered where it was asked (task 49), and
+    `asker` with which agent asked it (task 71).
     """
     tabs: dict[str, str] = {}
     asked = {} if asked is None else asked
+    asker = {} if asker is None else asker
+    asking: dict[str, HookLine] = {}
     for line in lines:
         hook = parse(line)
         if hook is None or hook.reminder or (hook.what == "prompt" and not hook.by_person):
             continue
         if hook.focus_url:
             tabs[hook.session] = hook.focus_url
+        if hook.what == "asking":
+            asking[hook.session] = hook
+            continue
         if hook.what == "answered":
             entry = queue.get(hook.session)
-            if (answers(hook, asked.get(hook.session, ""))
+            if (answers(hook, asked.get(hook.session, ""), asker.get(hook.session, ""))
                     and entry is not None and entry.kind is Kind.NEEDS):
                 queue.drop_session(hook.session)
             continue
+        pending = asking.pop(hook.session, None)
         asked[hook.session] = hook.tool if hook.what == "needs" else ""
+        asker[hook.session] = asked_by(pending, hook) if hook.what == "needs" else ""
         if hook.what in ("prompt", "end"):
             queue.drop_session(hook.session)
             continue
@@ -1252,6 +1261,11 @@ async def run(args) -> int:
     # The tool each session's last line asked about, `""` once anything else
     # followed it (task 49): what an `answered` line has to match.
     asked: dict[str, str] = {}
+    # Which agent asked it, `""` for the main thread (task 71): an `answered`
+    # has to come from the same one. Filled from the `asking` line held in
+    # `asking` until the needs behind it arrives.
+    asker: dict[str, str] = {}
+    asking: dict[str, HookLine] = {}
     # When each session's Bash question was read, in epoch seconds like a
     # process's start (task 65): a Bash started before it was not its answer.
     asked_at: dict[str, float] = {}
@@ -1393,6 +1407,7 @@ async def run(args) -> int:
         if typed_at is None or now >= typed_at + ladder.after_prompt_s:
             typed_at = now
         asked.pop(session, None)
+        asker.pop(session, None)
         asked_at.pop(session, None)
         answered = attention.replied(session, now)
         if answered.dropped is not None:
@@ -1412,7 +1427,7 @@ async def run(args) -> int:
         # only for a claude still running — the file is never rotated, and a
         # day of closed tabs would otherwise come back with it. A process list
         # nobody could read keeps the session, the loud direction (principle 7).
-        found = recall(tail.lines(), queue, time.monotonic(), asked)
+        found = recall(tail.lines(), queue, time.monotonic(), asked, asker)
         gone = 0
         for entry in queue.pending():
             run = running(entry.session)
@@ -1455,14 +1470,21 @@ async def run(args) -> int:
                 continue
             if hook.focus_url:
                 tabs[hook.session] = hook.focus_url
+            if hook.what == "asking":
+                # Held for the needs that follows it, and said by that needs;
+                # above `name_tab` for the same reason as `answered` (task 71).
+                asking[hook.session] = hook
+                continue
             if hook.what == "answered":
                 # One of these per tool call, so one that answers nothing says
                 # nothing — and it is above `name_tab` because its line carries
                 # no folder to name a tab after (`hook_event.sh`, task 49).
-                if not answers(hook, asked.get(hook.session, "")):
+                if not answers(hook, asked.get(hook.session, ""),
+                               asker.get(hook.session, "")):
                     continue
                 replied(hook.session, "answered where it asked")
                 continue
+            pending = asking.pop(hook.session, None)
             name_tab(hook.session, hook.project, hook.host)
             if hook.what == "prompt" and not hook.by_person:
                 # Not a person arriving, so it resolves nothing (criterion 5).
@@ -1497,6 +1519,7 @@ async def run(args) -> int:
                     typed_at = now
                 prompted_at[hook.session] = now
                 asked.pop(hook.session, None)
+                asker.pop(hook.session, None)
                 answered = attention.prompted(hook.session, hook.project, now)
                 if answered.dropped is not None:
                     say("resolved", f"{describe(answered.dropped)} — you were there",
@@ -1522,6 +1545,7 @@ async def run(args) -> int:
                 known.pop(hook.session, None)
                 tabs.pop(hook.session, None)
                 asked.pop(hook.session, None)
+                asker.pop(hook.session, None)
                 prompted_at.pop(hook.session, None)
                 warp_tabs.pop(hook.session, None)
                 warp_tried.discard(hook.session)
@@ -1534,6 +1558,8 @@ async def run(args) -> int:
                 if event.kind is Kind.DONE and event.session in prompted_at:
                     event = replace(event, turn_s=now - prompted_at.pop(event.session))
                 asked[event.session] = hook.tool if event.kind is Kind.NEEDS else ""
+                asker[event.session] = (asked_by(pending, hook)
+                                        if event.kind is Kind.NEEDS else "")
                 if asked[event.session] == BASH:
                     asked_at[event.session] = time.time()
                 look(event.session, event.project)
@@ -1541,6 +1567,8 @@ async def run(args) -> int:
                 say("queued", f"{event.kind.value} · {short(event.session)} "
                               f"({len(queue)} pending)"
                               + (" — the turn ended in an API error" if event.failed else "")
+                              + (" — a subagent asks it, so only its answer counts"
+                                 if asker[event.session] else "")
                               + (" — silenced, so it waits quiet"
                                  if queue.silenced(event.session) else ""),
                     project=event.project)

@@ -613,6 +613,24 @@ venv/bin/python3 -m src.daemon          # the real thing
     **What would be a defect:** Tink or Hero on a fresh checkout; your file playing on the ball;
     a file in `assets/sounds/` that plays nothing and is not said.
 
+28. **A subagent's question ends when that subagent's tool runs** (task 71). After
+    `tools/install_hooks.py` wired `PermissionRequest` and Claude Code restarted, from a real
+    session only:
+    - **Ask something a subagent does with Bash** — an `Explore` or `general-purpose` agent told
+      to run a command no rule allows yet. Its permission prompt shows in the main window.
+    - **The needs says who asks.** The log's `queued needs` line ends `a subagent asks it, so only
+      its answer counts`, and `var/events` has an `asking` line just before the `needs`, its
+      `agent_id` filled.
+    - **Approve it.** The beat stops within a second or two of the subagent's tool running: the log
+      says `resolved needs · … — answered where it asked`, and the catch plays.
+    - **The main thread is unchanged.** A main-thread Bash prompt still queues without
+      `a subagent asks it` in its line, and its own answer still resolves it.
+
+    **What would be a defect:** the needs beating on after the yes (juno, 2026-10-02, 13:19 — the
+    bug this step exists for); a subagent's needs resolved by a main-thread tool; no `asking` line
+    before a permission `needs`, which means the host fires them the other way round and the
+    question falls back to the main thread's rule.
+
 ### When your own eye is the instrument, point a camera at it
 
 Steps 1 and 2 are about light and about time, and both are things a person watching is bad at:
