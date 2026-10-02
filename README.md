@@ -9,6 +9,11 @@ button and the window that was waiting comes to the front.
 
 No ball? It still works: the menu bar shows what is waiting and the Mac makes the sounds.
 
+<p align="center">
+  <img src="docs/menubar-menu-2026-10-02.png" width="315"
+       alt="wobble in the menu bar: the ball with 1 beside it, and its menu open on a finished session">
+</p>
+
 > **Unofficial fan project.** Not affiliated with, endorsed by or connected to Nintendo,
 > Creatures Inc., GAME FREAK inc. or The Pokémon Company. Free, non-commercial, and it stays that
 > way. No Nintendo asset is in this repository: the Pikachu cry is downloaded onto your own Mac at
@@ -142,6 +147,11 @@ beside it is how many sessions are waiting.
 | hollow | looking for the ball (press its top button) |
 | faded | the ball is switched off from the menu, or wobble was started with `--no-ball` |
 
+| | |
+|---|---|
+| <img src="docs/menubar-done-2026-10-02.png" width="37" alt="the ball with a yellow centre and 1 beside it"> | a session finished: the centre is lit yellow, like the real ball's ring |
+| <img src="docs/menubar-quiet-2026-10-02.png" width="38" alt="the ball with a dark centre and 1 beside it"> | the same session while you are looking at its window: still counted, but quiet and dark |
+
 Click it for the menu: every waiting session (click one to go to it; hold **⌥** to silence it
 instead), **Mute the sounds** (the ball still buzzes and lights), connect or disconnect the ball,
 and **Quit wobble**.
@@ -155,16 +165,6 @@ venv/bin/python3 -m src.daemon --no-ball
 wobble never looks for a ball: the menu bar and the Mac's sounds do everything. This is also
 how wobble is developed. `--help` lists the other options, such as `--mute`.
 
-## Uninstall
-
-```bash
-venv/bin/python3 tools/install_hooks.py --uninstall   # takes wobble's hooks back out
-rm -rf /Applications/wobble.app                       # if you built the app
-```
-
-Then delete the `wobble` folder, and remove wobble or your terminal from **Accessibility** and
-**Bluetooth** in System Settings if you want those back as they were. The ball keeps the cry and
-the yellow light wobble sent it until a Switch writes its own.
 ## Your own sounds
 
 The Mac's sounds can be your own. Put a file in `assets/sounds/`, named after what it plays for,
@@ -185,6 +185,16 @@ your sounds stay on your Mac.
 file you add. The sounds wobble ships in [`sounds/`](sounds/README.md) were drawn in code, and
 contain no audio from the game.
 
+## Uninstall
+
+```bash
+venv/bin/python3 tools/install_hooks.py --uninstall   # takes wobble's hooks back out
+rm -rf /Applications/wobble.app                       # if you built the app
+```
+
+Then delete the `wobble` folder, and remove wobble or your terminal from **Accessibility** and
+**Bluetooth** in System Settings if you want those back as they were. The ball keeps the cry and
+the yellow light wobble sent it until a Switch writes its own.
 
 ## Troubleshooting
 
