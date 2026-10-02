@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Runtime state — events, logs, captures, whatever the daemon keeps
+var/
+
+# Nintendo assets are never committed (see NOTICE / constitution)
+assets/cries/
+*.wav
+*.adpcm
+
+# Recordings, including of the ball driven by the game. docs/ is where a
+# reference lives so it stays findable (CLAUDE.md); that is not the same as
+# committing it, and a git add . would have put 8 MB of game footage in here.
+*.mp4
+*.mov
+
+# macOS
+.DS_Store
