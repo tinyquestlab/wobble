@@ -2,6 +2,9 @@
 
 A Poké Ball Plus that tells you when Claude Code is done, or when it is stuck waiting on you.
 
+**Version 0.1.0 (beta)** — the first version, checked by hand on one Mac. What comes next is in
+[ROADMAP.md](ROADMAP.md).
+
 Leave the agent working and walk away with the ball in your hand. When a session finishes, the
 ball lights up yellow and Pikachu cries. When a session asks you something, the ball wobbles
 in your hand like a catch in progress, and keeps wobbling until you deal with it. Press the ball's
