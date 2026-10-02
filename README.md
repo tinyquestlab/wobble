@@ -151,6 +151,7 @@ beside it is how many sessions are waiting.
 |---|---|
 | <img src="docs/menubar-done-2026-10-02.png" width="37" alt="the ball with a yellow centre and 1 beside it"> | a session finished: the centre is lit yellow, like the real ball's ring |
 | <img src="docs/menubar-quiet-2026-10-02.png" width="38" alt="the ball with a dark centre and 1 beside it"> | the same session while you are looking at its window: still counted, but quiet and dark |
+| <img src="docs/menubar-silenced-2026-10-02.png" width="28" alt="the ball with a blue centre and no number"> | a session you silenced: the centre is blue, and it is no longer counted |
 
 Click it for the menu: every waiting session (click one to go to it; hold **⌥** to silence it
 instead), **Mute the sounds** (the ball still buzzes and lights), connect or disconnect the ball,
