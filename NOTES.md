@@ -66,3 +66,5 @@ that spec's `learnings.md`; this is the short, still-true version. Sorted from s
   folder's VS Code window; Accessibility only lists the current desktop's windows.
 - 2026-10-01 (spec 01, task 63): on macOS 26 the menu bar follows the wallpaper, not the
   Light/Dark setting. A light-bar desk check needs a light wallpaper.
+- 2026-10-02: commit only once a piece of work is fully done, then land it as one commit or a few
+  well-sorted ones, the way the history was rebuilt for publishing. No commit per step along the way.
