@@ -1297,7 +1297,14 @@ class Status:
 
     def show(self, title: str) -> None:
         self._ensure()
-        self._item.button().setTitle_(title)
+        button = self._item.button()
+        if title == button.title():
+            return
+        button.setTitle_(title)
+        # The lights were placed on the old title's layout: a count that comes or
+        # goes moves the ball, and a light left behind sits off its centre.
+        if self._lights is not None:
+            self._place_lights(button)
 
     def icon(self, ball) -> tuple[bool, str | None]:
         """The shell as an image, and the centre's light as two layers over it.
@@ -1350,15 +1357,10 @@ class Status:
                 layer.setOpacity_(0.0)
                 button.layer().addSublayer_(layer)
         held, flash = self._lights
-        window = button.window()
-        scale = window.backingScaleFactor() if window is not None else 2.0
-        path = _light_path(button.cell().imageRectForBounds_(button.bounds()))
+        self._place_lights(button)
         CATransaction.begin()
         CATransaction.setDisableActions_(True)   # no implicit fades: only ours
         try:
-            for layer in self._lights:
-                layer.setPath_(path)
-                layer.setContentsScale_(scale)
             if (ball.centre, ball.breath) != self._held:
                 self._held = (ball.centre, ball.breath)
                 held.removeAllAnimations()
@@ -1374,6 +1376,19 @@ class Status:
                 if ball.pulse is not None:
                     flash.setFillColor_(_colour(ball.pulse).CGColor())
                     flash.addAnimation_forKey_(_flashing(ball.pulse_s), "flash")
+        finally:
+            CATransaction.commit()
+
+    def _place_lights(self, button) -> None:
+        window = button.window()
+        scale = window.backingScaleFactor() if window is not None else 2.0
+        path = _light_path(button.cell().imageRectForBounds_(button.bounds()))
+        CATransaction.begin()
+        CATransaction.setDisableActions_(True)   # a light that slides is worse than a stale one
+        try:
+            for layer in self._lights:
+                layer.setPath_(path)
+                layer.setContentsScale_(scale)
         finally:
             CATransaction.commit()
 

@@ -2223,6 +2223,11 @@ One commit each. Desk-check tasks commit their answers into `learnings.md`.
         brings a seen done back quiet (B at 17:17:32, `snooze … quiet — you had seen it` at
         17:22:28, nothing played or lit after). The tap on release was not felt as slow: "it's
         working". The 2 s hold and blue 179 stand as chosen.
+      - Seen 2026-10-02: the menu bar's blue light sat off the ball's centre once a silence took
+        the count away. `setTitle_` moves the button's image (x 10.2 → 8.5 when "1" became ""),
+        and the light kept the old title's place. The seam's `Status.show` now places the lights
+        again whenever the title changes. Desk the same day, after a restart: a silence at
+        12:50:07 left the blue light centred.
 
 - [x] **69 — B finds a session's window by the folder it started in, on any desktop.** Asked
       at the desk 2026-10-01: "why isn't the workspace one in the list?", then, at 14:48,
