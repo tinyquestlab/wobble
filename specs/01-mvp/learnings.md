@@ -1537,5 +1537,5 @@ and the prose probe (task 16). One line went to `CLAUDE.md`: Ctrl-C, never Ctrl-
 
 Sorted 2026-10-05: the suite's shape, the stand-in cries, `daemon_edges`'s slices, the seam's
 darwin half and the locked Mac went to `NOTES.md`. The buffered count (task 79) and the clone-shaped
-copy (task 78) are proposed as personal lessons. The re-homed payload, the empty glob and
-`scripted_front` stay here: true of their task.
+copy (task 78) went to a personal lessons file, approved 2026-10-05. The re-homed payload, the empty
+glob and `scripted_front` stay here: true of their task.
