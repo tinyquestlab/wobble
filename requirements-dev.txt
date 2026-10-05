@@ -1,0 +1,4 @@
+# The suite's one dependency (task 74), on top of requirements.txt on a Mac.
+# Linux needs nothing else: bleak is imported lazily (src/ball/link.py) and the
+# seam falls back to null, so PyObjC is never asked for.
+pytest>=8

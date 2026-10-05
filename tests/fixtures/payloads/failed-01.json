@@ -1,0 +1,16 @@
+{
+  "session_id": "91ce0f87-cabf-486e-964a-84d4ff3c04ef",
+  "transcript_path": "/home/user/.claude/projects/-tmp-claude-1000--home-user-dev-wobble-4f6f4de9-1215-4123-a8f5-24b88942cabd-scratchpad-pt/91ce0f87-cabf-486e-964a-84d4ff3c04ef.jsonl",
+  "cwd": "/tmp/claude-1000/-home-user-dev-wobble/4f6f4de9-1215-4123-a8f5-24b88942cabd/scratchpad/pt",
+  "permission_mode": "default",
+  "hook_event_name": "PostToolUseFailure",
+  "tool_name": "Bash",
+  "tool_input": {
+    "command": "false",
+    "description": "Run false command"
+  },
+  "tool_use_id": "toolu_01HwuKzDkmFDHULWPAiU2e3H",
+  "error": "Exit code 1",
+  "is_interrupt": false,
+  "duration_ms": 27
+}

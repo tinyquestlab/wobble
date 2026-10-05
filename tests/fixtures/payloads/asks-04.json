@@ -1,0 +1,8 @@
+{
+  "session_id": "ee4eaec2-32a2-4743-96bb-dfc616b3c253",
+  "transcript_path": "/home/user/.claude/projects/-tmp-claude-1000--home-user-dev-toolbox-4ad762cc-ace9-4d9f-8938-6bbf9d22a0a6-scratchpad-ask-probe-leg-ask/ee4eaec2-32a2-4743-96bb-dfc616b3c253.jsonl",
+  "cwd": "/tmp/claude-1000/-home-user-dev-toolbox/4ad762cc-ace9-4d9f-8938-6bbf9d22a0a6/scratchpad/ask-probe/leg-ask",
+  "hook_event_name": "Notification",
+  "message": "Claude needs your permission",
+  "notification_type": "permission_prompt"
+}

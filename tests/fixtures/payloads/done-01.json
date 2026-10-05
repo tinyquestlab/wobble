@@ -1,0 +1,16 @@
+{
+  "session_id": "88c85af8-0621-436e-84df-f55bae7116c7",
+  "transcript_path": "/home/user/.claude/projects/-home-user-dev-wobble/88c85af8-0621-436e-84df-f55bae7116c7.jsonl",
+  "cwd": "/home/user/dev/wobble",
+  "scratchpad_dir": "/tmp/claude-1000/-home-user-dev-wobble/88c85af8-0621-436e-84df-f55bae7116c7/scratchpad",
+  "prompt_id": "8550163c-c403-47d1-8755-d986096e047c",
+  "permission_mode": "auto",
+  "effort": {
+    "level": "xhigh"
+  },
+  "hook_event_name": "Stop",
+  "stop_hook_active": false,
+  "last_assistant_message": "`var/events` cleared — it had grown from 12 to 30 lines, so the loop kept feeding itself until the monitor stopped.\n\nTo start it by hand, from the repo root:\n\n```\nvenv/bin/python3 -m src.daemon\n```\n\n**Ask** — write this down in `learnings.md`?",
+  "background_tasks": [],
+  "session_crons": []
+}

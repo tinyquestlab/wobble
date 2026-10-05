@@ -1,0 +1,8 @@
+{
+  "session_id": "5387133b-a977-4838-b023-c86059a01754",
+  "transcript_path": "/home/user/.claude/projects/-home-user-dev-quarry/5387133b-a977-4838-b023-c86059a01754.jsonl",
+  "cwd": "/home/user/dev/quarry",
+  "hook_event_name": "Notification",
+  "message": "Claude is waiting for your input",
+  "notification_type": "idle_prompt"
+}

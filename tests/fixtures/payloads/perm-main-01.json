@@ -1,0 +1,28 @@
+{
+  "session_id": "40ecf6f7-c5b2-4149-82b5-fe44a9a8ef00",
+  "transcript_path": "/home/user/.claude/projects/-tmp-claude-1000--home-user-dev-wobble-c2ce39a8-ab4d-48da-b35c-e5d0234dfe21-scratchpad-permreq/40ecf6f7-c5b2-4149-82b5-fe44a9a8ef00.jsonl",
+  "cwd": "/tmp/claude-1000/-home-user-dev-wobble/c2ce39a8-ab4d-48da-b35c-e5d0234dfe21/scratchpad/permreq",
+  "scratchpad_dir": "/tmp/claude-1000/-tmp-claude-1000--home-user-dev-wobble-c2ce39a8-ab4d-48da-b35c-e5d0234dfe21-scratchpad-permreq/40ecf6f7-c5b2-4149-82b5-fe44a9a8ef00/scratchpad",
+  "prompt_id": "fc43ef94-2717-4cc7-b02a-5e7f2ab8878f",
+  "permission_mode": "default",
+  "hook_event_name": "PermissionRequest",
+  "tool_name": "Bash",
+  "tool_input": {
+    "command": "touch made-by-main.txt",
+    "description": "Create file from main agent"
+  },
+  "permission_suggestions": [
+    {
+      "type": "addDirectories",
+      "directories": [
+        "/tmp/claude-1000/-home-user-dev-wobble/c2ce39a8-ab4d-48da-b35c-e5d0234dfe21/scratchpad/permreq"
+      ],
+      "destination": "session"
+    },
+    {
+      "type": "setMode",
+      "mode": "acceptEdits",
+      "destination": "session"
+    }
+  ]
+}

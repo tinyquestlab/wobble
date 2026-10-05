@@ -1,0 +1,10 @@
+{
+  "session_id": "9d03908e-53dc-4ba5-b353-768f4d2be1d9",
+  "transcript_path": "/home/user/.claude/projects/-home-user-dev-toolbox/9d03908e-53dc-4ba5-b353-768f4d2be1d9.jsonl",
+  "cwd": "/home/user/dev/toolbox",
+  "scratchpad_dir": "/tmp/claude-1000/-home-user-dev-toolbox/9d03908e-53dc-4ba5-b353-768f4d2be1d9/scratchpad",
+  "prompt_id": "6f45065a-1d99-4abb-945c-ac3bec8f36ae",
+  "hook_event_name": "Notification",
+  "message": "Claude needs your permission to use Send Message",
+  "notification_type": "permission_prompt"
+}

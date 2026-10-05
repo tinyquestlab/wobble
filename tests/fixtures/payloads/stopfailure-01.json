@@ -1,0 +1,11 @@
+{
+  "session_id": "d23970ba-889f-4e00-985f-cc56a96a783d",
+  "transcript_path": "/home/user/.claude/projects/-tmp-claude-1000--home-user-dev-wobble-4f6f4de9-1215-4123-a8f5-24b88942cabd-scratchpad-sf/d23970ba-889f-4e00-985f-cc56a96a783d.jsonl",
+  "cwd": "/tmp/claude-1000/-home-user-dev-wobble/4f6f4de9-1215-4123-a8f5-24b88942cabd/scratchpad/sf",
+  "effort": {
+    "level": "high"
+  },
+  "hook_event_name": "StopFailure",
+  "error": "model_not_found",
+  "last_assistant_message": "There's an issue with the selected model (claude-nonexistent-model-x). It may not exist or you may not have access to it."
+}

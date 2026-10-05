@@ -1,0 +1,10 @@
+{
+  "session_id": "88c85af8-0621-436e-84df-f55bae7116c7",
+  "transcript_path": "/home/user/.claude/projects/-home-user-dev-wobble/88c85af8-0621-436e-84df-f55bae7116c7.jsonl",
+  "cwd": "/home/user/dev/wobble",
+  "scratchpad_dir": "/tmp/claude-1000/-home-user-dev-wobble/88c85af8-0621-436e-84df-f55bae7116c7/scratchpad",
+  "prompt_id": "79cd8bb0-ea89-4257-a3e2-029a26379253",
+  "permission_mode": "auto",
+  "hook_event_name": "UserPromptSubmit",
+  "prompt": "explain that entry to me, briefly"
+}

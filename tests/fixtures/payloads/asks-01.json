@@ -1,0 +1,10 @@
+{
+  "session_id": "83ace191-60b2-4173-b2da-ed3eb90aeffe",
+  "transcript_path": "/home/user/.claude/projects/-home-user-dev-pokeball/83ace191-60b2-4173-b2da-ed3eb90aeffe.jsonl",
+  "cwd": "/home/user/dev/pokeball",
+  "scratchpad_dir": "/tmp/claude-1000/-home-user-dev-pokeball/83ace191-60b2-4173-b2da-ed3eb90aeffe/scratchpad",
+  "prompt_id": "7bc77fa2-21c0-411c-95ed-95a4790d8074",
+  "hook_event_name": "Notification",
+  "message": "Claude needs your permission to use AskUserQuestion",
+  "notification_type": "permission_prompt"
+}

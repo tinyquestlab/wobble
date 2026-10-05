@@ -1,0 +1,21 @@
+{
+  "session_id": "91ce0f87-cabf-486e-964a-84d4ff3c04ef",
+  "transcript_path": "/home/user/.claude/projects/-tmp-claude-1000--home-user-dev-wobble-4f6f4de9-1215-4123-a8f5-24b88942cabd-scratchpad-pt/91ce0f87-cabf-486e-964a-84d4ff3c04ef.jsonl",
+  "cwd": "/tmp/claude-1000/-home-user-dev-wobble/4f6f4de9-1215-4123-a8f5-24b88942cabd/scratchpad/pt",
+  "permission_mode": "default",
+  "hook_event_name": "PostToolUse",
+  "tool_name": "Bash",
+  "tool_input": {
+    "command": "printf \"a\\\"b\\tc session_id\"",
+    "description": "Run printf with escaped quotes and tab"
+  },
+  "tool_response": {
+    "stdout": "a\"b\tc session_id",
+    "stderr": "",
+    "interrupted": false,
+    "isImage": false,
+    "noOutputExpected": false
+  },
+  "tool_use_id": "toolu_01Mw41AniGwtRrvnvfcjfVQj",
+  "duration_ms": 24
+}
