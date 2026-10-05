@@ -1,0 +1,31 @@
+# The four runtime dependencies of the MVP.
+#
+# Verified 2026-09-22 on Python 3.12.14, resolving to bleak 3.0.2 — the version
+# the protocol layer was proven against, which is why the floor is that major
+# and not a guess at how far back it works.
+#
+# PyObjC arrives here at task 12 and not before: the macOS seam now imports
+# AppKit for the menu bar item. It was already installed either way — bleak
+# pulls it in for CoreBluetooth — and that is exactly why it is written down. A
+# direct import resting on somebody else's transitive dependency works until the
+# day that dependency changes its mind, and then fails as a missing menu bar.
+#
+# ApplicationServices arrives at task 14, for the Accessibility API — reading
+# other apps' window titles and raising one. Cocoa does NOT cover it and neither
+# does Quartz, which is the trap: `import Quartz` succeeds, `AXIsProcessTrusted`
+# is not in it, and the symptom is an AttributeError at the moment somebody
+# presses B. It pulls CoreText and Quartz in behind it; those are its
+# dependencies and not ours, so they are not listed here.
+#
+# Quartz becomes ours at task 60: the menu bar's ball moves its light in Core
+# Animation layers, imported by name. Same reason as PyObjC above — resting on
+# ApplicationServices to bring it in works until the day it stops.
+#
+# The seam imports it lazily on purpose. If it is missing, only focusing stops —
+# the menu bar and the Mac sound keep working, and B says in words why no window
+# came forward.
+
+bleak>=3.0                                  # BLE/GATT, via CoreBluetooth on macOS
+pyobjc-framework-Cocoa>=10.0                # AppKit/Foundation, for the menu bar item
+pyobjc-framework-ApplicationServices>=10.0  # the Accessibility API, for raising a window
+pyobjc-framework-Quartz>=10.0               # Core Animation, for the menu ball's light
