@@ -1,0 +1,101 @@
+{
+  "_about": "The signal vocabulary. Ids are chosen by ear at the desk and change as more of the ball's sound bank is identified, so they live here and not in code (plan.md). Every number carries where it came from; provenance in full is specs/01-mvp/learnings.md.",
+
+  "kinds": {
+    "needs": {
+      "effect": 199,
+      "every_s": 1.5,
+      "mute_effect": 4,
+      "mac_sound": "sounds/needs.wav",
+      "tint": "#FFB000",
+      "_source_tint": "task 58, for the menu bar's ball only - the ball never reads it. A READING, not a measurement: 199's own colour was never written down, and the nearest description is yellow. An amber so it is not taken for done's Pikachu yellow at 18 pt. To be checked against the ball at the desk.",
+      "_source": "desk 2026-09-22. 199 over 198 because through cloth 198 is heard 4/4 and felt 0/4; 199 == 200. The 1.5 s is a judgement about feel, moved up from the game's own measured 1.14 s cadence. Floor is ~0.6 s: 199's motor runs 571 ms. It has no light and no led on purpose (task 35): 199's colour is fixed by the firmware - 198-200 are the catch UI, the phases of a Pokemon inside the ball (the desk, 2026-09-25) - and it beats every 1.5 s until dismissed, so it is never dark long enough to need a held light. Its wobble is what says 'something needs you', as against done's stroll light (the desk, 2026-09-25). The Mac repeats on the same 1.5 s as the ball does, on purpose - parity, not a separate cadence.",
+      "_source_mute": "4 is 199's light and rumble with no sound - the same colour as 199, which is the point: muted, a needs still reads as a needs (the desk, 2026-09-25). It buzzes on every send and stays pulsing (the desk, 2026-09-25). It replaces task 34's 213, which a desk probe measured buzzing 1 of 8 against 199's 8 of 8 - muted signals were silent AND motionless until this. A rumble sweep ranked 4 at 1.14x (docs/PROTOCOL.md section 6.7), which ranks and does not confirm; the desk feel is what chose it.",
+      "_source_mac_sound": "sounds/needs.wav since task 70 (2026-10-02): a wobble drawn in code from two measurements of the game's own (sounds/README.md), 0.450 s by afinfo, well inside the 1.5 s beat. A relative path is read against this checkout (core/ladder.py). It replaced Tink, chosen 2026-09-23 as the shortest stock sound (0.564 s) and called a STAND-IN from the start; Tink replaced Sosumi, which at 1.539 s overran its own beat. A file named needs in assets/sounds/ plays instead, on the Mac only (task 70)."
+    },
+    "done": {
+      "light": 9,
+      "effect": 129,
+      "every_s": 30.0,
+      "times": 2,
+      "led": 138,
+      "mute_effect": 9,
+      "mac_sound": "@cry",
+      "cries": {"happy": [20, 32, 34, 181, 230], "proud": [32, 34], "sad": [21, 22], "call": [33], "soft": [230], "greet": [29], "lonely": [143]},
+      "long_turn_s": 600.0,
+      "lonely_after_s": 300.0,
+      "greet_lasts_s": 2.0,
+      "greet_quiet_s": 10.0,
+      "greet_away_s": 900.0,
+      "_source_greet_away": "task 67, asked for at the desk 2026-10-01: a greet for coming back after one minute is too soon - it should mean a long time away, the Mac asleep or 15 minutes. The greet for coming back to the keys waited for idle.after_s (60 s), which is the soft's minute, not an absence. Now it is this long with no key or mouse, or the Mac asleep this long - seen as the wall clock running ahead of the monotonic one, which stops in sleep on macOS. Forgotten while nothing is pending. B still greets at once. 900 is a GUESS, owed the desk.",
+      "_source_greet_quiet": "task 67, asked for at the desk 2026-10-01: effects should not pile up - one at a time. At 10:11:04 a snooze brought a done back with a call (33), and B at 10:11:12 greeted it (29): two sounds eight seconds apart for one thing. A greet asked for less than greet_quiet_s after a beat played - any signal's, as the ball has one sound lane - is spent in silence, and the log says so. 10.0 is a GUESS, owed the desk.",
+      "_source_cries": "task 57, then task 64 (2026-09-30: the mood becomes an answer to what you did). Pikachu's own sounds on the NEW ball, which need no upload (docs/PROTOCOL.md section 6.5), now by mood. They have no labels of their own, so each borrows Eevee's at the same place in the block: Pikachu N is Eevee N+29, and 230/231, 300/301 - a CHOICE, to be improved later. happy is the first beat; proud the first beat of a turn over long_turn_s; sad the first beat of a turn ended by an API error (StopFailure); call the second beat, and the first of a done back from a snooze or a let-go; soft the first beat when its window is in front with no input for idle.after_s; greet once, when you come back to a done that has called; lonely a beat lonely_after_s after the first, nobody having come, and never for one that came back. 143 for lonely is a CHOICE owed the desk. Left out: 23, 24, 30, 31 (near-silent or weak), 25-28 and 35-39 (handling sounds), 300. long_turn_s 600, lonely_after_s 300 and greet_lasts_s 2.0 are GUESSES - greet's the same as caught's lasts_s. On the OLD ball these are only a rumble tap, so 'effect' (129, the uploaded cry) stays the fallback: --one-cry turns every pool off. The Mac plays @cry for every pool: the built-in cries were never recorded, a limit and not a decision.",
+      "tint": "#FFE14D",
+      "_source_tint": "task 58, for the menu bar's ball only. led 138 is Pikachu's and lights 9 yellow (the desk, 2026-09-25); this is that yellow as a hex. A READING of the colour, not a measurement of it.",
+      "_source": "task 35, settled at the desk 2026-09-25. 9 is the stroll light: it shows the colour in the 01 fc 01 LED resource, buzzes lightly on every send (10 is a little stronger), and then stays on by itself - tens of minutes in the desk logs, never seen to stop without 180 (the desk, 2026-09-25). So the held light IS the pulse and nothing is sent between beats. 129 is the stroll cry: it plays whatever was uploaded to 04 3c 00 (docs/PROTOCOL.md sections 6.6 and 7.2), with a strong rumble - the strongest single id in the rumble sweep (section 6.7). Both are stroll ids on purpose: a done should read as the Pokemon on a stroll, and a needs as the ball wobbling, so the two are told apart at a glance. The ball sends 9 before 129 only when 9 is not already held, and light replaces light, so a done coming back after a needs sends 9 again. 213 is not used: it is the catch slot (04 3e 00, 01 fd 01), kept free for catching. 110-128 read the same slot but are not a path for the 30 s repeat: they are the variants of a stroll Pokemon that is NOT the partner. The partner (Pikachu or Eevee) uploads no slot and plays built-in blocks instead - 20-39 Pikachu, 49-69 Eevee - but on the NEW ball only; on the old one those ids are a rumble tap (the desk, 2026-09-28; docs/PROTOCOL.md section 6.5). Pikachu stays on 129 for now: it works on both units, and the Mac's @cry is the uploaded wav. led 138 is Pikachu's colour from the sniffer capture; it goes in both halves of the fc LED (docs/PROTOCOL.md sections 8.2 and 8.3), and its only reader is 9.",
+      "_source_mute": "9 alone - the light and its light rumble, no cry (the desk, 2026-09-25). It is sent on both beats, so a muted done still buzzes at 0 and at 30 s, and it holds the light the same as the voiced one does.",
+      "_source_rhythm": "Two beats 30 s apart, then the light alone until somebody comes. The numbers are JUDGEMENTS: 30 s because a second cry sooner reads as nagging, 2 because a third cry for something already finished is noise. times 2 stops the sound without stopping the light - a signal that falls silent on its own is what principle 7 forbids, and 9 is still saying it. Task 64 adds one more, lonely, at lonely_after_s from the first, for a done nobody has come to - a mood, not a third repeat of the call. This replaced the 3 s silent pulse of 2026-09-22 and its 5 s after_beat_s: with one audio slot, every blink was an upload over the cry, and the cry gap existed only to keep that upload off a sounding cry. A held light needs neither.",
+      "_source_mac_sound": "Changed 2026-09-23, asked for by name: the done's sound on the Mac should be the one that goes to the ball. '@cry' is not a path - it is whatever --cry points at, resolved by core/ladder.py, so the ball and the Mac cannot be given different voices for the same signal by editing one of them. It was Glass, which is a fine 'finished' noise and was a second vocabulary nobody asked for: with a ball you hear Pikachu, without one you heard a chime, and the two surfaces stopped being the same notifier (principle 1). afplay decodes the MS ADPCM cry directly, checked 2026-09-23 - 16 kHz mono, 1.012 s by afinfo - so no conversion sits between the two. Since task 70 a file named done in assets/sounds/ plays instead, on the Mac only: the ball keeps the cry, so that one is a choice you make for your own laptop and never for the ball."
+    }
+  },
+
+  "outcomes": {
+    "_about": "How a catch ends (task 56), played once each and never queued. caught: a needs answered, where it asked or by a prompt in its session. broke_out: a needs taken with B whose window was in front, then left for look_away.wait_s without answering - its pulse comes back after it. silenced (task 68): a session silenced by hand, held B or the menu.",
+    "caught": {
+      "effect": 201,
+      "mute_effect": 193,
+      "tint": "#3CC85A",
+      "lasts_s": 2.0,
+      "mac_sound": "sounds/caught.wav",
+      "_source": "201 is 'caught!', the second-last id of the Switch's catch sequence (docs/PROTOCOL.md section 6.4). It lights the ball capture-green and then vibrates, with its own sound. 193 is the green single pulse with no rumble and no sound (section 6.3), so muted a catch is still green. lasts_s 2.0 is a GUESS at how long 201 plays, never timed: it is how long nothing else is sent over it. sounds/caught.wav is the Mac's since task 70 (2026-10-02): the catch's click, drawn in code from two measurements of the game's own (sounds/README.md), 0.220 s by afinfo. It replaced Hero, a stock rising chime chosen 2026-09-23. A file named caught in assets/sounds/ plays instead, on the Mac only.",
+      "_source_tint": "the capture-green as a hex, a READING for the menu bar's ball."
+    },
+    "broke_out": {
+      "effect": 206,
+      "mute_effect": 191,
+      "tint": "#E8342A",
+      "lasts_s": 2.0,
+      "mac_sound": "/System/Library/Sounds/Basso.aiff",
+      "_source": "206 is 'the catch failed, the creature broke out' (docs/PROTOCOL.md section 6.4); red, with sound and rumble, as measured at the desk. 191 is the red single pulse with no rumble and no sound (section 6.3). lasts_s 2.0 is a GUESS, the same as caught's. Basso is a CHOICE for the Mac: the one low 'no' macOS ships. It stays until the game's broke-out sound is measured the way needs and caught were (task 70); a file named broke_out in assets/sounds/ plays instead, on the Mac only.",
+      "_source_tint": "a red as a hex, a READING for the menu bar's ball."
+    },
+    "silenced": {
+      "effect": 2,
+      "light": 179,
+      "silent": true,
+      "mute_effect": 2,
+      "tint": "#2F6BFF",
+      "lasts_s": 1.0,
+      "mac_sound": null,
+      "_source": "task 68: what B held on the ball, or the menu's Silence row, plays to say a session is silenced. A PROPOSAL owed the desk, approved with a drawing of the ball's queue on 2026-10-01. 179 is blue and stays on (docs/PROTOCOL.md section 6.3), a colour no kind uses; 2 is the weak tick with no light (section 6.6), so the hand feels it took. No sound on either surface, since a silence that chimes is not one; muted it is the same. lasts_s 1.0 is a CHOICE: how long the blue stays before the ball's next light, or 180 when nothing is owed one.",
+      "_source_tint": "a blue as a hex, a READING for the menu bar's ball."
+    }
+  },
+
+  "after_prompt": {
+    "wait_s": 5.0,
+    "_source": "task 25, asked for at the desk 2026-09-23: a cry right after typing a prompt should wait 5 s. The case is in the log at 13:14:23-13:14:24 - a prompt typed in one project and a done from ANOTHER project crying a second later, which the quiet-while-watching rule does not cover: that rule silences the project you are looking at, not the hand that just typed. 5.0 is a JUDGEMENT, not a measurement - the same order as the cry gap, and long enough that the sound is plainly a separate event from the keystroke. It holds the BEAT only: a signal already flashing keeps flashing, because the light was already saying what it says. A signal that has never beaten stays dark for the hold as well, or its first flash would arrive before its own cry - which is the defect of 2026-09-22 (DESK-CHECKS Part D.2) coming back through this door. It does not re-arm: a second prompt inside the window does not push the wait out again, because a person typing every three seconds would otherwise never hear the ball, and a signal that falls silent on its own is what principle 7 forbids."
+  },
+
+  "look_away": {
+    "wait_s": 3.0,
+    "glance_s": 1.0,
+    "_source_glance": "task 67, asked for at the desk 2026-10-01: effects should not pile up - one at a time. The log at 10:11:05 has the done's own window in front and then another session's in the same second - a pass through it - and that alone sent 180 (lights off) and, 3 s later, 9 with its buzz. A window counts as looked at only after it has been in front this long. Measured from when the front window last changed, not from when the signal arrived: one already in front when something became pending counts at once, so a done arriving while you read its window is still quiet. A signal already looked at, or inside its wait_s, does not wait again. 1.0 is a GUESS - longer than an alt-tab passing through, shorter than going to a window to read it.",
+    "_source": "task 37, asked for at the desk 2026-09-28: not instantly on leaving the window, but 3-5 s after. Leaving the window of the signal at the top of the queue used to bring its light back, with 9's light buzz, at once - and the log of that afternoon shows four glances away and back inside 25 s (16:25:24-16:25:49), each one a buzz. For this many seconds after you leave, the window still counts as looked at: dark, nothing played, the clock still stopped; come back inside it and nothing happened at all. It applies to the first cry too - a done that arrived while you watched cries this long after you leave, not at once. 3.0 is the desk's pick from the 3-5 s asked for: 5.0 shipped first, and 3.0 was tried and kept the same day. Only the same project gets it: when the top of the queue changes, the new one owes you nothing and speaks on its own schedule."
+  },
+
+  "after_end": {
+    "wait_s": 3.0,
+    "_source": "task 44, asked for at the desk 2026-09-28: after a session is closed, always allow 3 s before the next signal, so whoever is closing it is not startled into thinking the cry belongs to the tab that closed. When a session closes (its SessionEnd, or its claude found gone), the next signal - whichever session it belongs to - waits this long before it beats. Every close arms it, whether or not the closed session had anything pending, because the scare is the same either way. It holds the BEAT only, exactly as after_prompt does: a light already up stays up, and a signal that has never beaten stays dark. 3.0 is the desk's number, a JUDGEMENT and not a measurement. Unlike after_prompt it re-arms on every close: each close is a separate thing you did, and a burst of them ends when you stop closing tabs, so it cannot grow into a silence of its own (principle 7)."
+  },
+
+  "idle": {
+    "after_s": 60.0,
+    "_source": "task 64, asked for at the desk 2026-09-30: stepping away left the session's window in front, untouched - and moving the mouse or typing should reset the time. A window in front counts as looked at only while a key or the mouse moved in the last after_s; past it, the signal is not shielded by it any more - a done that never cried cries soft, one that did goes on to its next beat. Any input resets it. 60 is a CHOICE: Claude Code's own 60 s before its idle_prompt (task 39). 0 turns it off."
+  },
+
+  "snooze": {
+    "after_s": 300.0,
+    "_source": "settled 2026-09-22. Dismissing is a promise - you said you would look - and a promise not kept brings that same signal back, to the back of the queue (task 54). The 5 min is a judgement, not a measurement: the time-to-press has never been produced by a run and is what this should come from."
+  }
+}
