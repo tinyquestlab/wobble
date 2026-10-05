@@ -1,0 +1,33 @@
+# The suite on every push (task 81): Linux without the Mac tier, macOS with all of it.
+# The radio, the camera and the person stay at the desk (docs/DESK-CHECKS.md Part B).
+name: tests
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  linux:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      # requirements.txt is not installed: PyObjC does not build here, and nothing
+      # off the Mac tier asks for it (requirements-dev.txt says why).
+      - run: pip install -r requirements-dev.txt
+      - run: python -m pytest -m "not mac" -rA
+
+  macos:
+    runs-on: macos-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt -r requirements-dev.txt
+      - run: python -m pytest -rA
