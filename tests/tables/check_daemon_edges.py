@@ -800,7 +800,9 @@ def alternating(patch=None):
     world.register(JUNO, 8001, entrypoint="claude-vscode")
     world.register(WOBBLY, 8002, entrypoint="claude-vscode")
     world.proc({"8001": {"started": 1.0}, "8002": {"started": 1.0}})
-    world.set("moves", "0.4")
+    # A raise must outlast the four presses (~0.45 s): at 0.4 the last one landed after it
+    # on a busy CI runner, 2026-10-05 (task 79).
+    world.set("moves", "1.2")
     d = Daemon(box, "--no-ball", patch=patch)
     rows = []
     d.wait("restart")

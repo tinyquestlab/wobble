@@ -1534,6 +1534,11 @@ and the prose probe (task 16). One line went to `CLAUDE.md`: Ctrl-C, never Ctrl-
   Second time this bit (see 2026-10-01, close). The row printed only `(False, False)`; it now
   prints the seam's own words when it fails. The Mac tier runs unlocked — `caffeinate -d` for a
   long batch.
+- 2026-10-06 (task 79): CI's macOS job failed "alternating B" on a doc-only commit, the same
+  tree green there the run before and 10 times here. Four presses 0.15 s apart (~0.45 s) had to
+  land inside one fake raise of ~0.53 s (`moves` 0.4 plus the link's third): an 80 ms margin, and a
+  busy runner spent it, so the last press raised a third window. `moves` is now 1.2. Stays here:
+  true of this table.
 
 Sorted 2026-10-05: the suite's shape, the stand-in cries, `daemon_edges`'s slices, the seam's
 darwin half and the locked Mac went to `NOTES.md`. The buffered count (task 79) and the clone-shaped
