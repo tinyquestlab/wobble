@@ -20,6 +20,14 @@ Eight claims, each with a mutant that must break it:
   - keeping 0 days keeps everything
   - the log follows the events file, so a desk run cannot write into the record
 
+And task 89's `signals.tsv`, one row per ended signal kept past the fortnight —
+three claims, each with its own mutant of `log.ended`:
+
+  - one header, then one row per end, fields as the daemon handed them
+  - an end with a name that is not ours is filed as `other`, never as itself
+  - a file it cannot write says so in words, the way `start` does — and the sweep
+    leaves the file where it is, a claim the sweep's own mutants already break
+
 Plus an end-to-end leg: a real daemon, `--no-ball --no-menubar`, against a
 throwaway events file. What it proves is the join — that the file it wrote is
 its own stdout, and that `var/logs` was not touched by a check running beside
@@ -35,7 +43,7 @@ import subprocess
 import sys
 import tempfile
 import time
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -145,6 +153,7 @@ def rows(make, quiet: bool = False) -> bool:
     plant(old, "wobble-2026-09-22.log", days_old=400)     # fresh name, old mtime
     plant(old, "notes.txt", days_old=400)
     plant(old, "wobble-backup.log", days_old=400)
+    plant(old, log.SIGNALS, days_old=400)
     swept = make(old, 14, lambda: DAY)
     swept.open_for(DAY)
     sheet.row("the one whose NAME is old goes, whatever its mtime says",
@@ -153,7 +162,9 @@ def rows(make, quiet: bool = False) -> bool:
               "wobble-2026-09-22.log" in names_in(old), True)
     sheet.row("…a file that is not ours is not ours to delete",
               [n for n in names_in(old) if not n.startswith("wobble-2")],
-              ["notes.txt", "wobble-backup.log"])
+              ["notes.txt", "signals.tsv", "wobble-backup.log"])
+    sheet.row("…and the signals kept past the fortnight stay (task 89)",
+              "signals.tsv" in names_in(old), True)
     sheet.row("…and it says what it removed rather than doing it quietly",
               swept.swept, ["wobble-2026-09-01.log"])
     swept.close()
@@ -170,7 +181,91 @@ def rows(make, quiet: bool = False) -> bool:
     return sheet.ok()
 
 
+AT = datetime(2026, 9, 23, 8, 44, 56)
+
+
+def kept(ended, quiet: bool = False) -> bool:
+    """Task 89's table. `ended` is `log.ended` or a mutant of it, writing where
+    `log.start` last pointed it — the module's own state, as the daemon has it."""
+    sheet = Sheet(quiet)
+    say = (lambda _: None) if quiet else print
+
+    say("\n  signals.tsv, kept past the fortnight (task 89)")
+    here = box() / "logs"
+    log.start(here, 14, lambda: DAY)
+    said = [ended("needs", 25.4, 7, 3, "answered", clock=lambda: AT),
+            ended("done", 4520, 2, 0, "teleported", clock=lambda: AT)]
+    rows = lines_of(here / log.SIGNALS)
+    sheet.row("one header, then a row per end, beside the logs",
+              [r.split("\t")[0] for r in rows], ["date", "2026-09-23", "2026-09-23"])
+    sheet.row("…the row as handed: when, kind, seconds, beats, heard, how",
+              rows[1:2], ["2026-09-23\t08:44:56\tneeds\t25\t7\t3\tanswered"])
+    sheet.row("…an end that is not one of ours filed as other",
+              [r.rsplit("\t", 1)[-1] for r in rows[2:]], ["other"])
+    sheet.row("…and nothing to say when it was written",
+              said, [None, None])
+
+    say("\n  signals.tsv that cannot be written")
+    wall = box() / "logs"
+    log.start(wall, 14, lambda: DAY)
+    (wall / log.SIGNALS).mkdir()                   # a directory where the file goes
+    words = ended("done", 9, 0, 0, "there", clock=lambda: AT)
+    sheet.row("no traceback, and it says why, in words",
+              words is not None and "are not kept" in words, True)
+    return sheet.ok()
+
+
 # --- the mutants -------------------------------------------------------------
+
+def header_every_row(kind, waited_s, beats, heard, how, clock=datetime.now):
+    """The header written with every row. Opens fine in a spreadsheet glance and
+    turns every second line of a fortnight's count into a row named 'date'."""
+    at = clock()
+    row = (at.date().isoformat(), at.strftime("%H:%M:%S"), kind, f"{waited_s:.0f}",
+           str(beats), str(heard), how if how in log.HOWS else "other")
+    try:
+        with log._signals.open("a", encoding="utf-8") as out:
+            out.write("\t".join(log.COLUMNS) + "\n")
+            out.write("\t".join(row) + "\n")
+    except OSError as exc:
+        return f"{log._signals} — {exc.strerror or exc}; the signals are not kept"
+    return None
+
+
+def any_how(kind, waited_s, beats, heard, how, clock=datetime.now):
+    """Files whatever end it was handed. One typo in the daemon and the column
+    the whole file exists to count grows a value nobody will group by."""
+    at = clock()
+    row = (at.date().isoformat(), at.strftime("%H:%M:%S"), kind, f"{waited_s:.0f}",
+           str(beats), str(heard), how)
+    try:
+        new = not log._signals.exists()
+        with log._signals.open("a", encoding="utf-8") as out:
+            if new:
+                out.write("\t".join(log.COLUMNS) + "\n")
+            out.write("\t".join(row) + "\n")
+    except OSError as exc:
+        return f"{log._signals} — {exc.strerror or exc}; the signals are not kept"
+    return None
+
+
+def keeps_quiet(kind, waited_s, beats, heard, how, clock=datetime.now):
+    """A failure swallowed. The daemon carries on, as it should — and nobody
+    learns that a fortnight from now there will be nothing to read."""
+    at = clock()
+    row = (at.date().isoformat(), at.strftime("%H:%M:%S"), kind, f"{waited_s:.0f}",
+           str(beats), str(heard), how if how in log.HOWS else "other")
+    try:
+        new = not log._signals.exists()
+        with log._signals.open("a", encoding="utf-8") as out:
+            if new:
+                out.write("\t".join(log.COLUMNS) + "\n")
+            out.write("\t".join(row) + "\n")
+    except OSError:
+        return None
+    return None
+
+
 
 class PinsTheDayAtStartup(log.Daily):
     """Reads the clock once, in the constructor. Correct on any run short enough
@@ -308,6 +403,8 @@ def main() -> int:
              names_in(ROOT / "var" / "logs"), before)
     ok &= live.ok()
 
+    ok &= kept(log.ended)
+
     print("\n  the control — every rule removed in turn, each must break the table")
     controls = (
         ("a day chosen once, when the daemon started", PinsTheDayAtStartup),
@@ -318,6 +415,13 @@ def main() -> int:
     )
     for what, mutant in controls:
         survived = rows(mutant, quiet=True)
+        ok &= not survived
+        print(f"    {what:<56} "
+              f"{'<-- SURVIVED' if survived else 'caught'}")
+    for what, mutant in (("signals.tsv with a header on every row", header_every_row),
+                         ("an end filed under any name it is handed", any_how),
+                         ("signals.tsv that fails without a word", keeps_quiet)):
+        survived = kept(mutant, quiet=True)
         ok &= not survived
         print(f"    {what:<56} "
               f"{'<-- SURVIVED' if survived else 'caught'}")

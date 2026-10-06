@@ -28,7 +28,7 @@ TABLES = [
     ("own_sounds", 18),
     ("seam", 53),
     pytest.param("raise", 63 if sys.platform == "darwin" else 60, marks=slow),   # 3 real-seam legs
-    ("log", 25),
+    ("log", 34),
     pytest.param("focus", 40, marks=mac),
     pytest.param("macos_edges", 124, marks=mac),
     pytest.param("menu_light", 34, marks=mac),
@@ -49,6 +49,6 @@ def test_watching(run_table):
 @slow
 def test_daemon_edges(run_table):
     """Its scenarios and its seventy mutants, in five slices side by side (task 79)."""
-    run_table("daemon_edges", 202, parts=[["--part", "scenarios"]]
+    run_table("daemon_edges", 221, parts=[["--part", "scenarios"]]
               + [["--part", f"mutants:{i}/4"] for i in range(4)],
               timeout=900)   # ~385 s here; a CI runner is slower

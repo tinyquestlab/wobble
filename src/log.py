@@ -74,6 +74,15 @@ OURS = ("src", NAME)
 # one process, and a handler left behind writes every later line twice.
 _rooted: list[logging.Handler] = []
 
+# Task 89: one row per signal that ended, beside the day files and never swept
+# (`sweep` reads only `wobble-*.log`), so a fortnight is not the whole memory.
+# Counts and a fixed `how` only: no session, project or window title.
+SIGNALS = "signals.tsv"
+COLUMNS = ("date", "time", "kind", "waited_s", "beats", "heard", "how")
+# An allowlist: a `how` nobody named here is kept as `other`, never as its words.
+HOWS = frozenset({"there", "answered", "approved", "turn ended", "closed", "gone"})
+_signals: Path | None = None
+
 
 def plain(record: logging.LogRecord) -> str:
     """A record from anywhere but `say`, when no caller laid out the columns."""
@@ -271,6 +280,8 @@ def start(directory: Path, keep_days: int = KEEP_DAYS,
     for name in OURS:
         logging.getLogger(name).setLevel(logging.INFO)
 
+    global _signals
+    _signals = directory / SIGNALS
     kept = "kept for good" if keep_days <= 0 else f"{keep_days} days kept"
     swept = f", {len(handler.swept)} older removed" if handler.swept else ""
     return handler.path, f"{handler.path} ({kept}{swept})"
@@ -279,3 +290,22 @@ def start(directory: Path, keep_days: int = KEEP_DAYS,
 def write(line: str) -> None:
     """One line, exactly the string the terminal was given."""
     _log.info(line)
+
+
+def ended(kind: str, waited_s: float, beats: int, heard: int, how: str,
+          clock: Callable[[], datetime] = datetime.now) -> str | None:
+    """Keep one ended signal's row (task 89). Words to say when it could not be, as `start`."""
+    if _signals is None:
+        return None
+    at = clock()
+    row = (at.date().isoformat(), at.strftime("%H:%M:%S"), kind, f"{waited_s:.0f}",
+           str(beats), str(heard), how if how in HOWS else "other")
+    try:
+        new = not _signals.exists()
+        with _signals.open("a", encoding="utf-8") as out:
+            if new:
+                out.write("\t".join(COLUMNS) + "\n")
+            out.write("\t".join(row) + "\n")
+    except OSError as exc:
+        return f"{_signals} — {exc.strerror or exc}; the signals past the fortnight are not kept"
+    return None

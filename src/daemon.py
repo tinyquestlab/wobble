@@ -46,7 +46,7 @@ import signal
 import sys
 import threading
 import time
-from dataclasses import replace
+from dataclasses import dataclass, replace
 from pathlib import Path
 
 from . import log, platform_seam
@@ -152,6 +152,33 @@ def describe(entry: Entry | Waiting | None) -> str:
         return "nothing"
     # Which session, so two in one folder read as two (task 40).
     return f"{entry.kind.value} · {short(entry.session)}"
+
+
+def span(seconds: float) -> str:
+    """A wait as a person reads it — 25s, 4m12s, 1h46m (task 86)."""
+    s = max(0, round(seconds))
+    if s < 60:
+        return f"{s}s"
+    if s < 3600:
+        return f"{s // 60}m{s % 60:02d}s"
+    return f"{s // 3600}h{s % 3600 // 60:02d}m"
+
+
+@dataclass(slots=True)
+class Life:
+    """One wait, as the line that ends it tells it (task 86): when it began, and its beats.
+
+    The daemon's own, not `Waiting.since`: a row back from a snooze or a let-go
+    is refiled with a fresh `since` (`Queue.restore`), and the wait it ends still
+    began at its first signal. Counted per session, because the Signaller's count
+    starts over whenever another signal takes the floor. `heard` is a beat that
+    was not silent and went to the ball, or that the Mac played.
+    """
+
+    kind: Kind
+    start: float
+    beats: int = 0
+    heard: int = 0
 
 
 def recall(lines: list[str], queue: Queue, at: float,
@@ -521,6 +548,10 @@ class Away:
     the idle reading counts through a sleep was not measured, so either is
     enough. Back is the first poll the idle drops after that, said once.
     `idle_s` of `None` (nothing pending, or blind) forgets the time away.
+
+    `went` is the why on the one poll you count as away, and `gone_s` how long
+    you were, on wall time from the last touch, so a sleep is in it (task 87:
+    until then away and ignoring read the same in the log).
     """
 
     def __init__(self, away_s: float):
@@ -529,21 +560,35 @@ class Away:
         # Why you count as away, latched until you come back or it is forgotten.
         self.why: str | None = None
         self.clocks: tuple[float, float] | None = None
+        # Wall time of the last touch before going away, while away.
+        self.left: float | None = None
+        self.went: str | None = None
+        self.gone_s = 0.0
 
     def back(self, idle_s: float | None, wall: float, mono: float) -> str | None:
         clocks, self.clocks = self.clocks, (wall, mono)
         was, self.idle_was = self.idle_was, idle_s
+        self.went = None
         if not self.away_s or idle_s is None:
-            self.why = None
+            self.why = self.left = None
             return None
+        away = self.why is not None
         if clocks is not None:
             slept = (wall - clocks[0]) - (mono - clocks[1])
             if slept >= self.away_s:
                 self.why = f"the Mac slept {slept:.0f}s"
+                if not away:
+                    self.left = clocks[0]
         if idle_s >= self.away_s and (self.why is None or not self.why.startswith("the Mac")):
             self.why = f"{idle_s:.0f}s with no key or mouse"
+            if not away:
+                self.left = wall - idle_s
+        if self.why is not None and not away:
+            self.went = self.why
         if self.why is not None and was is not None and idle_s < was:
             why, self.why = self.why, None
+            self.gone_s = wall - (self.left if self.left is not None else wall)
+            self.left = None
             return why
         return None
 
@@ -1392,20 +1437,49 @@ async def run(args) -> int:
             project=silenced.project)
         outcome("silenced", how, silenced.project)
 
-    def closed(over, what: str, why: str) -> None:
+    # Each session's wait as its end will tell it (task 86).
+    lives: dict[str, Life] = {}
+
+    def life(entry: Entry | Waiting) -> Life:
+        """This session's wait, begun at its `since` when it began before this run did."""
+        had = lives.get(entry.session)
+        if had is None or had.kind is not entry.kind:
+            had = lives[entry.session] = Life(entry.kind, entry.since)
+        return had
+
+    said_kept: str | None = None
+
+    def lived(entry: Waiting, how: str) -> str:
+        """How the wait that just ended went, said at the end of its line (task 86).
+
+        Kept in `signals.tsv` too, under `how` (`log.HOWS`, task 89).
+        """
+        nonlocal said_kept
+        had = life(entry)
+        del lives[entry.session]
+        why = log.ended(entry.kind.value, now - had.start, had.beats, had.heard, how)
+        if why is not None and why != said_kept:
+            say("SIGNALS NOT KEPT", why)
+        said_kept = why
+        return (f" · after {span(now - had.start)} · {had.beats} "
+                f"beat{'' if had.beats == 1 else 's'} ({had.heard} heard)")
+
+    def closed(over, what: str, why: str, how: str) -> None:
         """Say what a session leaving took out. Nothing, when it took nothing."""
         if over.dropped is not None:
-            say(what, f"{describe(over.dropped)} — {why}", project=over.dropped.project)
+            say(what, f"{describe(over.dropped)} — {why}{lived(over.dropped, how)}",
+                project=over.dropped.project)
         if over.released is not None:
             say("released", f"after {over.released.waited:.0f}s — nothing "
                             f"left in it to attend",
                 project=over.released.project)
 
-    def replied(session: str, how: str, typed: bool = True) -> None:
+    def replied(session: str, how: str, kept: str, typed: bool = True) -> None:
         """Its question was answered where it was asked (task 49), said as `how`.
 
         `typed` is False when no hand is known to have been at it: a turn's end
         says the question is over, not that somebody just answered (task 73).
+        `kept` is how `signals.tsv` files it (task 89).
         """
         nonlocal typed_at
         # Answering in place is a hand at the keyboard as much as a prompt
@@ -1419,7 +1493,8 @@ async def run(args) -> int:
         asked_at.pop(session, None)
         answered = attention.replied(session, now)
         if answered.dropped is not None:
-            say("resolved", f"{describe(answered.dropped)} — {how}",
+            say("resolved",
+                f"{describe(answered.dropped)} — {how}{lived(answered.dropped, kept)}",
                 project=answered.dropped.project)
         if answered.released is not None:
             say("released", f"after {answered.released.waited:.0f}s",
@@ -1485,7 +1560,7 @@ async def run(args) -> int:
                 if not answers(hook, asked.get(hook.session, ""),
                                asker.get(hook.session, "")):
                     continue
-                replied(hook.session, "answered where it asked")
+                replied(hook.session, "answered where it asked", "answered")
                 continue
             if restates(hook, asking.pop(hook.session, None)):
                 # Claude Code's notice of a question already beating since its
@@ -1533,7 +1608,8 @@ async def run(args) -> int:
                 asker.pop(hook.session, None)
                 answered = attention.prompted(hook.session, hook.project, now)
                 if answered.dropped is not None:
-                    say("resolved", f"{describe(answered.dropped)} — you were there",
+                    say("resolved", f"{describe(answered.dropped)} — you were there"
+                                    f"{lived(answered.dropped, 'there')}",
                         project=answered.dropped.project)
                 if answered.released is not None:
                     say("released", f"after {answered.released.waited:.0f}s",
@@ -1562,7 +1638,7 @@ async def run(args) -> int:
                 warp_tried.discard(hook.session)
                 closed_at = now
                 closed(attention.ended(hook.session, hook.project, now),
-                       "session ended", "it stopped waiting when its session closed")
+                       "session ended", "it stopped waiting when its session closed", "closed")
                 continue
             event = hook.as_event(now)
             if event is not None:
@@ -1574,15 +1650,28 @@ async def run(args) -> int:
                         for entry in (queue.get(event.session), attention.entry)):
                     # A turn that ended asks nothing any more (task 73): a denial
                     # runs no tool, so its Stop is the only word that it is over.
-                    replied(event.session, "its turn ended", typed=False)
+                    replied(event.session, "its turn ended", "turn ended", typed=False)
                 asked[event.session] = hook.tool if event.kind is Kind.NEEDS else ""
                 asker[event.session] = hook.agent if event.kind is Kind.NEEDS else ""
                 if asked[event.session] == BASH:
                     asked_at[event.session] = time.time()
                 look(event.session, event.project)
+                had = lives.get(event.session)
+                again = had is not None and had.kind is event.kind
+                if not again:
+                    had = lives[event.session] = Life(event.kind, now)
+                # Task 88: a session signalling the kind it already waits on is
+                # the same wait, said so, and where the earlier one stood.
+                old = queue.get(event.session)
+                held = attention.entry is not None and attention.entry.session == event.session
                 queue.add(event)
                 say("queued", f"{event.kind.value} · {short(event.session)} "
                               f"({len(queue)} pending)"
+                              + (f" — again, waiting {span(now - had.start)}"
+                                 + (", while you are on it" if held else "")
+                                 + (", quiet until now" if old is not None and old.quiet
+                                    and not queue.silenced(event.session) else "")
+                                 if again else "")
                               + (" — the turn ended in an API error" if event.failed else "")
                               + (" — a subagent asks it, so only its answer counts"
                                  if asker[event.session] else "")
@@ -1627,7 +1716,7 @@ async def run(args) -> int:
                     closed_at = now
                     closed(attention.ended(session, project, now), "process gone",
                            f"its claude (pid {run.pid}) is not running, and no "
-                           f"SessionEnd said so")
+                           f"SessionEnd said so", "gone")
 
         # A Bash question is answered the moment its command starts, not when it
         # ends (task 65): the yes fires no hook, and `PostToolUse` waits for the
@@ -1653,7 +1742,8 @@ async def run(args) -> int:
                         continue
                     argv, _ = platform_seam.process.command(kid)
                     if argv is not None and runs_bash(argv):
-                        replied(session, f"its Bash started (pid {kid}), so it was approved")
+                        replied(session, f"its Bash started (pid {kid}), so it was approved",
+                                "approved")
                         break
 
         if tail.restarts:
@@ -1810,6 +1900,12 @@ async def run(args) -> int:
         idle_front = watched and still
         watched = watched and not still
         came_back = keys_away.back(idle_s if ladder.idle_s else None, time.time(), now)
+        # Task 87: a long wait split into away and seen-and-left. Only while
+        # something is pending, the one time idle is read.
+        if keys_away.went is not None:
+            say("left the keys", keys_away.went)
+        if came_back is not None:
+            say("back at the keys", f"after {span(keys_away.gone_s)}")
 
         # Said on the edge (tasks 52, 54): a signal speaking while something is
         # held would otherwise read as the hold having broken.
@@ -1894,11 +1990,17 @@ async def run(args) -> int:
                     else "")
             say("play (beat)", f"effect {voice.effect}{light}{mood}"
                                f"{' · silent' if voice.silent else ''}"
-                               f" — {describe(current)}",
+                               # The ladder's own count (task 88): a 1 after
+                               # an `again` is a ladder that started over.
+                               f" — {describe(current)} · beat {signaller.beats}",
                 project=current.project if current is not None else "")
             if connected:
                 ball.beat(voice)
-            _, why_not = menubar.beat(voice, ball_connected=connected)
+            played, why_not = menubar.beat(voice, ball_connected=connected)
+            if current is not None:
+                had = life(current)
+                had.beats += 1
+                had.heard += not voice.silent and (connected or played)
             if why_not is not None:
                 say("NO SOUND", f"{why_not} — with no ball, that beat was not "
                                 f"heard at all",

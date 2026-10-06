@@ -22,7 +22,10 @@ sessions, one raise at a time and no link into another window, with the front
 window moved under the raise (`moves`, `steal`); and task 67's glance, a window
 passed through that is not looked at and one already in front that is; and
 task 68's silence, by B held (a stdin line `hold`) and by the menu's ⌥ row
-(`BOX/silence`), ended by a prompt or an answer and by nothing else.
+(`BOX/silence`), ended by a prompt or an answer and by nothing else; and task
+86's life of a signal, its wait and its beats said on the line that ends it, and
+task 87's left and back at the keys, and task 88's re-queue said and each beat
+numbered, and task 89's row per ended signal in the sandbox's `logs/signals.tsv`.
 
 Every daemon is the real `src.daemon` run by `tests/tables/edge_harness.py`, on a
 sandbox events file written by the real `tools/hook_event.sh`
@@ -750,6 +753,12 @@ def moods(patch=None):
     rows.append(("back at the keys after greet_away_s: the greet, once, and why",
                  d.wait("play (greet)", "you are back: 100s with no key or mouse",
                         project="softy"), True))
+    # Task 87: the absence is in the log on its own, timed from the last touch.
+    gone = [m and int(m[1]) * 60 + int(m[2]) for m in
+            (re.fullmatch(r"after (\d+)m(\d+)s", x) for x in d.said("back at the keys"))]
+    rows.append(("…said as left and back, once each, back timed from the last touch",
+                 (d.said("left the keys"), [100 <= g <= 130 if g else g for g in gone]),
+                 (["100s with no key or mouse"], [True])))
     world.fire("prompt", "ssss6666", "softy", prompt="ok")
     d.wait("resolved", project="softy")
     # 2026-10-01 17:11:53: that greet's `hushed` was the name of the function
@@ -772,6 +781,8 @@ def moods(patch=None):
     time.sleep(1.0)
     rows.append(("a minute and a bit away, then a key: no greet",
                  d.said("play (greet)", project="minute"), []))
+    rows.append(("…and not away either: still the one absence",
+                 (len(d.said("left the keys")), len(d.said("back at the keys"))), (1, 1)))
     world.fire("prompt", "mmmm6666", "minute", prompt="ok")
     d.wait("resolved", project="minute")
     world.set("front", OTHER)
@@ -1004,6 +1015,84 @@ def interrupted(patch=None):
              (out.stdout.strip(), out.returncode), ("stopped.", 0))]
 
 
+LIFE = re.compile(r" · after (\d+)s · (\d+) beats? \((\d+) heard\)$")
+
+
+def lives(patch=None):
+    """Task 86: every line that ends a signal says how long it waited, and its beats."""
+    asks = {"notification_type": "permission_prompt",
+            "message": "Claude needs your permission to use Bash"}
+    sys.path.insert(0, str(ROOT))                  # the daemon's own `span`, not a copy of it
+    from src.daemon import span
+    rows = [("a wait as a person reads it: seconds, minutes, hours",
+             [span(25), span(252), span(6372), span(59.6)], ["25s", "4m12s", "1h46m", "1m00s"])]
+    box = Sandbox()
+    world = World(box)
+    world.set("ball", "letgo")
+    d = Daemon(box, patch=patch)
+    d.wait("restart")
+    for _ in range(100):
+        if "FAKEBALL connected" in d.lines:
+            break
+        time.sleep(0.05)
+    world.fire("needs", "llll1111", "lively", extra=asks)
+    d.wait("play (beat)", project="lively", n=2)
+    world.fire("needs", "llll1111", "lively", extra=asks)          # task 88: the same wait
+    d.wait("queued", project="lively", n=2)
+    d.wait("play (beat)", project="lively", n=3)
+    rows.append(("asked again: the same wait, said so with how long",
+                 [bool(re.search(r" — again, waiting \ds$", x))
+                  for x in d.said("queued", project="lively")], [False, True]))
+    rows.append(("…and each beat its ladder's count, which carries on",
+                 [x.rsplit(" · ", 1)[-1] for x in d.said("play (beat)", project="lively")][:3],
+                 ["beat 1", "beat 2", "beat 3"]))
+    world.fire("answered", "llll1111", "lively", extra={"tool_name": "Bash"})
+    d.wait("resolved", project="lively")
+    end = [LIFE.search(x) for x in d.said("resolved", project="lively")]
+    beats = len(d.said("play (beat)", project="lively"))
+    rows.append(("an answer's line: how long, and every beat, each heard on the ball",
+                 [(int(m[1]) >= 3, int(m[2]), int(m[3])) if m else None for m in end],
+                 [(True, beats, beats)]))
+    world.fire("done", "eeee2222", "endy")
+    d.wait("play (beat)", project="endy")
+    world.fire("end", "eeee2222", "endy")
+    d.wait("session ended", project="endy")
+    rows.append(("a session's end says it too",
+                 [bool(LIFE.search(x)) for x in d.said("session ended", project="endy")],
+                 [True]))
+    rows.append(("lives with a ball: quits clean", d.stop(), 0))
+    kept = kept_rows(box)
+    rows.append(("task 89: each end kept as a row in signals.tsv, with how it ended",
+                 [(r["kind"], r["how"]) for r in kept], [("needs", "answered"), ("done", "closed")]))
+    rows.append(("…the row the same life its line said",
+                 [(int(r["beats"]), int(r["heard"])) for r in kept][:1], [(beats, beats)]))
+
+    box = Sandbox()
+    world = World(box)
+    d = Daemon(box, "--no-ball", patch=patch)
+    d.wait("restart")
+    world.fire("needs", "nnnn3333", "unheard", extra=asks)
+    d.wait("play (beat)", project="unheard", n=2)
+    world.fire("prompt", "nnnn3333", "unheard", prompt="ok")
+    d.wait("resolved", project="unheard")
+    end = [LIFE.search(x) for x in d.said("resolved", project="unheard")]
+    rows.append(("no ball and no sound played: its beats, none heard",
+                 [(int(m[2]) >= 2, int(m[3])) if m else None for m in end], [(True, 0)]))
+    rows.append(("lives with no ball: quits clean", d.stop(), 0))
+    rows.append(("…and its row: you were there, nothing heard",
+                 [(r["how"], r["heard"]) for r in kept_rows(box)], [("there", "0")]))
+    return rows
+
+
+def kept_rows(box: Sandbox) -> list[dict[str, str]]:
+    """The sandbox's `signals.tsv` (task 89) — it follows the events file, as the log does."""
+    path = box.events.parent / "logs" / "signals.tsv"
+    if not path.exists():
+        return []
+    head, *body = path.read_text().splitlines()
+    return [dict(zip(head.split("\t"), line.split("\t"))) for line in body]
+
+
 SCENARIOS = [("restart", restore), ("live loop", live), ("Terminal", terminal),
              ("processes", processes), ("--notify-anyway", watching_flag),
              ("reference leg: no --notify-anyway",
@@ -1011,7 +1100,7 @@ SCENARIOS = [("restart", restore), ("live loop", live), ("Terminal", terminal),
              ("the lock", locks), ("the ball on quit", ball), ("a catch", catch),
              ("the cries", cries), ("the moods", moods), ("an approved Bash", approved),
              ("alternating B", alternating), ("a glance", glance), ("the silence", silence),
-             ("KeyboardInterrupt", interrupted)]
+             ("a signal's life", lives), ("KeyboardInterrupt", interrupted)]
 
 # One line of src/daemon.py each; the scenario that must catch it.
 MUTANTS = [
@@ -1052,7 +1141,7 @@ MUTANTS = [
     ("the silence unsaid in the banner", silence,
      ("    say(\"a silence\", f\"B held", "    (lambda *a: None)(\"a silence\", f\"B held")),
     ("an answer where it asked catches nothing", catch,
-     ("                replied(hook.session, \"answered where it asked\")",
+     ("                replied(hook.session, \"answered where it asked\", \"answered\")",
       "                pass")),
     ("a prompt's answer catches nothing", catch,
      ("                if answered.caught:\n                    outcome(\"caught\", \"it was",
@@ -1173,6 +1262,20 @@ MUTANTS = [
      ("        if answered.unsilenced:\n            say(", "        if False:\n            say(")),
     ("a prompt's unsilence unsaid", silence,
      ("                if answered.unsilenced:\n", "                if False:\n")),
+    ("away unsaid", moods,
+     ("        if keys_away.went is not None:\n", "        if False:\n")),
+    ("back timed from when it was noticed", moods,
+     ("                self.left = wall - idle_s\n", "                self.left = wall\n")),
+    ("a re-queue said as a new wait", lives,
+     ("        again = had is not None and had.kind is event.kind\n",
+      "        again = False\n")),
+    ("a beat heard with nothing to hear it", lives,
+     ("had.heard += not voice.silent and (connected or played)", "had.heard += 1")),
+    ("an answer's life unsaid", lives,
+     ("{how}{lived(answered.dropped, kept)}", "{how}")),
+    ("an end not kept", lives,
+     ("why = log.ended(entry.kind.value, now - had.start, had.beats, had.heard, how)",
+      "why = None")),
     ("the ball kept on quit", ball,
      ("        ball.set_wanted(False)\n        letting_go", "        letting_go")),
 ]
