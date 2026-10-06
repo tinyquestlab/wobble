@@ -192,3 +192,38 @@ and the person stay at the desk.
       README's tests line, ROADMAP's phases renumbered with 01 done; `learnings.md` closed.
 - [x] **85 — A clean history.** The repo rewritten as a few commits by layer, `v0.1.0-beta`
       re-tagged on the last, force-pushed with lease, and the release re-pointed.
+
+## Usage capture (2026-10-06)
+
+From `docs/usage-baseline-2026-10-06.md`: the logs hold nearly everything, but every timing needs
+pairing by hand, away looks like ignoring, and nothing outlives 14 days. Each task adds its own row
+to `check_daemon_edges` (or `check_log`) before it is ticked.
+
+- [x] **86 — How long, and how many beats.** Every line that ends a signal (`resolved`, `session
+      ended`, its turn ended) adds `after 4m12s · 9 beats (3 heard)`. Waited from the entry's
+      `since` (monotonic; one recalled after a restart counts from the restart). Beats counted per
+      session where `play (beat)` is said, not by the Signaller, whose count resets when another
+      signal takes the floor. Heard is a beat that is not silent and went to the ball or that the
+      Mac played (no `NO SOUND`). The count starts with a new wait (a kind that changes) and ends
+      with the signal.
+- [x] **87 — Away and back.** `away` on the poll `Away` latches (no key or mouse for `away_s`, or
+      the Mac asleep that long), `back` with how long when it ends. Read only while something is
+      pending, which is when idle is read at all — and the only time a wait needs splitting.
+- [x] **88 — A re-queue says so.** A `queued` for a session already waiting on the same kind adds
+      `again, waiting 4m`, and `while you are on it` or `quiet until now` when that is where the
+      earlier one stood. Every `play (beat)` ends `· beat N`, the ladder's own count, so a ladder
+      that starts over is a `beat 1` after an `again`, read off the log rather than claimed: a
+      quiet row made live by a new event can take the floor afresh. Left as it is: the greet keys
+      on (kind, at), so a re-queued done can be greeted again (learnings.md).
+- [x] **89 — Kept past the 14 days.** `var/logs/signals.tsv`, one row per ended signal: date, time,
+      kind, waited s, beats, heard, how (a fixed set: there, answered, approved, turn ended,
+      closed, gone; anything else filed as `other`). No session, project or title. A file it
+      cannot write is said once as `SIGNALS NOT KEPT`, and the daemon carries on. `Daily.sweep` only removes `wobble-*.log`, so it stays.
+      A row per signal rather than a line per day: it survives a daemon that is down at midnight,
+      and any day's summary is a group-by.
+- [x] **90 — Prove it on a real day.** The suite green, then a day of use read back: every end
+      carries its life, and `signals.tsv` agrees with the day's log. Read back 2026-10-06 over 20
+      minutes of real sessions, the daemon silent (`--no-ball`, `afplay` stood in): both ends said
+      their life and both rows matched it (648 s, 23 s); no `SIGNALS NOT KEPT`. The app runs the
+      new code from then on, so the rest of the day lands in the same two files.
+- [x] **91 — Close learnings.md and promote.**

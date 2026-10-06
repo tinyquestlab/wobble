@@ -1544,3 +1544,33 @@ Sorted 2026-10-05: the suite's shape, the stand-in cries, `daemon_edges`'s slice
 darwin half and the locked Mac went to `NOTES.md`. The buffered count (task 79) and the clone-shaped
 copy (task 78) went to a personal lessons file, approved 2026-10-05. The re-homed payload, the empty
 glob and `scripted_front` stay here: true of their task.
+
+## Tasks 86–91 — usage capture (2026-10-06)
+
+- 2026-10-06 (baseline): finding 4 first said 249 window changes logged with nothing pending. It
+  was the reading script, which forgot at midnight what was still waiting from the day before;
+  the code logs `in front` only with a target. Read the code before turning a count from a
+  throwaway script into a task — item (c) was nearly built for a gap that does not exist.
+- 2026-10-06 (task 86): a signal's wait cannot be read off `entry.since`: `Queue.restore` refiles a
+  snoozed or let-go row with a fresh `since`, and a re-queue of the same kind keeps it. The daemon
+  keeps its own `Life` per session, started on a new wait and ended with the signal.
+- 2026-10-06 (task 86): the new rows passed run from the repo root and failed in the suite with
+  `No module named 'src'` — the table runs as a script, and only the root on `sys.path` let the
+  quick run import `src.daemon`. A table that imports from `src` inserts ROOT itself.
+- 2026-10-06 (task 88): "a re-queue carries the ladder on" was not true in general — a quiet row
+  made live by a new event takes the floor afresh, and its ladder can start over. The line now
+  states facts (`again, waiting …`, `quiet until now`) and numbers each beat, so a restart is read
+  off the log rather than claimed. Left as it is: the greet keys on (kind, at), so a re-queued
+  done can be greeted again.
+- 2026-10-06 (task 89): adding `kept` to `replied(...)` moved one mutant's line, and the full run
+  failed on "its line is in src/daemon.py once" — the guard doing its job, at the cost of a 12-minute
+  run. After changing a call's signature, check every mutant line is still in the source once.
+- 2026-10-06 (task 90): the read-back ran 20 minutes on real sessions with the app stopped and a
+  silent daemon in its place. A row restored at startup counts its wait from the restart, as task
+  86 says — the first end read `after 10m48s` for a done older than that.
+
+Sorted 2026-10-06: the life line and `signals.tsv`, `Queue.restore`'s fresh `since`, ROOT on
+`sys.path` and the restarted ladder went to `NOTES.md`. The baseline's script that forgot at
+midnight went to a personal lessons file, approved 2026-10-06. The stale mutant line and the
+read-back stay here.
+

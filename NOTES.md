@@ -27,6 +27,10 @@ that spec's `learnings.md`; this is the short, still-true version. Sorted from s
   the table itself. CI runs it on Linux (no Mac tier) and macOS (all of it).
 - 2026-10-05 (spec 01, task 77): where no cry is installed, the suite makes silent stand-ins with
   the fetched ones' blocks, length and header. The tables check how a cry is cut, never its sound.
+- 2026-10-06 (spec 01, tasks 86–89): every line that ends a signal says its life (`after 4m12s ·
+  9 beats (3 heard)`), and `var/logs/signals.tsv` keeps one row per end past the 14 days — no
+  session, project or title. A day's summary is a group-by over it, so it survives a daemon that
+  was down at midnight.
 
 ## Learnings
 
@@ -79,3 +83,10 @@ that spec's `learnings.md`; this is the short, still-true version. Sorted from s
   null seam refuses in other words. `raise` has 63 rows on a Mac, 60 elsewhere.
 - 2026-10-05 (spec 01, task 82): a Mac that locks mid-run fails the real-seam rows, correctly.
   Run the Mac tier unlocked; `caffeinate -d` for a long batch.
+- 2026-10-06 (spec 01, task 86): a signal's wait is not `entry.since` — `Queue.restore` refiles a
+  snoozed or let-go row with a fresh one. The daemon keeps its own `Life` per session.
+- 2026-10-06 (spec 01, task 86): a table that imports from `src` puts the repo root on `sys.path`
+  itself. Run from the root it passes without, and fails in the suite.
+- 2026-10-06 (spec 01, task 88): a quiet row made live by a new event can restart its ladder, and
+  the greet keys on (kind, at), so a re-queued done can be greeted again. The log numbers each beat
+  rather than claiming either way.
