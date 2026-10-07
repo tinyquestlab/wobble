@@ -125,6 +125,29 @@ class Login:
         return False, "no platform: there is no list of what opens at login to show"
 
 
+class Permissions:
+    def kinds(self) -> tuple[str, ...]:
+        # None to list, so the menu shows no permission at all: a line saying
+        # one is missing would be about a platform this is not.
+        _record("Permissions.kinds")
+        return ()
+
+    def state(self, kind: str) -> tuple[str | None, str | None]:
+        _record("Permissions.state", kind)
+        return None, "no platform: there is no permission to read"
+
+    def settings(self, kind: str) -> tuple[bool, str | None]:
+        _record("Permissions.settings", kind)
+        return False, "no platform: there is no System Settings to open"
+
+
+def _labels(items) -> list:
+    # By the list in the handler's place, not by `ports.Submenu`: this file
+    # imports nothing, and check_seam.py loads it alone by path.
+    return [[label, _labels(handler)] if isinstance(handler, list) else label
+            for label, handler in items]
+
+
 class Status:
     # Nothing to write to, and no shadow title kept — the state is already in the
     # core, and a mirror of a mirror is just somewhere else to be wrong.
@@ -146,8 +169,9 @@ class Status:
         # The labels are recorded and the handlers are not: with no item there
         # is nothing to click at all, so what a check can usefully ask is what
         # the mirror decided to offer, and a list of bound methods answers that
-        # less clearly than the words do.
-        _record("Status.menu", [label for label, _ in items])
+        # less clearly than the words do. A submenu is recorded as
+        # `[label, [its labels]]`, so a table reads the nesting AppKit draws.
+        _record("Status.menu", _labels(items))
 
     def pump(self) -> None:
         # No event loop, so nothing is ever holding an event for us.

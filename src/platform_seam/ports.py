@@ -10,7 +10,8 @@ PyObjC — which is exactly what `null.py` is.
 Four, because `plan.md` names four. A port arrives here when a task needs it — and
 task 40 needed a fifth, `Process`, to ask whether a session's claude still runs,
 and task 64 a sixth, `Idle`, to ask whether anybody is at the keyboard. Spec 02
-added a seventh, `Login`, to open wobble when somebody logs in.
+added a seventh, `Login`, to open wobble when somebody logs in, and spec 03 an
+eighth, `Permissions`, to say which of its grants the process holds.
 
 `@runtime_checkable` makes `isinstance(x, Sound)` a real check on method names —
 the cheapest proof that an implementation did not drift from what it claims.
@@ -27,6 +28,29 @@ class Alternate(str):
     only `Status.menu` asks which kind it is. A row for doing something rarer to
     the same line — silencing a session rather than going to it — and hidden
     until asked for, the way macOS hides its own.
+    """
+
+    __slots__ = ()
+
+
+class Checked(str):
+    """A menu label drawn with the OS's own checkmark beside it (spec 03, task 02).
+
+    A `str` for the same reason `Alternate` is one. For a switch that is on —
+    opening at login — where a word saying "on" would be a second way to say
+    what a checkmark already says, and say it less like every other Mac menu.
+    """
+
+    __slots__ = ()
+
+
+class Submenu(str):
+    """A menu label that opens a menu of its own beside it (spec 03, task 02).
+
+    Its handler slot carries that menu's items, the same `(label, handler)`
+    list, instead of a callable. A submenu opens beside the parent menu, so it
+    is still a menu and not a window (`constitution.md`, principle 2): the
+    app's own settings go there, out of the way of what is waiting.
     """
 
     __slots__ = ()
@@ -272,6 +296,35 @@ class Login(Protocol):
 
 
 @runtime_checkable
+class Permissions(Protocol):
+    """Which of the OS's grants this process holds, read without asking (spec 03).
+
+    A kind is `"bluetooth"`, `"accessibility"` or `"automation:<bundle id>"`,
+    one per app wobble sends Apple events to; `kinds()` lists the ones this
+    seam can read, in the order the menu shows them, worst loss first.
+
+    **`state(kind)` returns `(state, why)`, read fresh on every call:**
+
+      - `("granted", None)`;
+      - `("refused", "…")` — switched off, and `why` says what stops working;
+      - `("not asked", "…")` — never asked for yet, which is not missing;
+      - `("not running", "…")` — automation only: the app is not running, and
+        macOS answers nothing about it then;
+      - `(None, "…")` — it could not be read, saying why. Never shown as granted.
+
+    Nothing is ever asked for here: a read that prompts would be a dialog
+    nobody chose to open. `settings(kind)` opens the OS's own pane for it,
+    `(ok, why)`.
+    """
+
+    def kinds(self) -> tuple[str, ...]: ...
+
+    def state(self, kind: str) -> tuple[str | None, str | None]: ...
+
+    def settings(self, kind: str) -> tuple[bool, str | None]: ...
+
+
+@runtime_checkable
 class Status(Protocol):
     """The menu bar item — owned by the seam, written by the mirror.
 
@@ -310,7 +363,8 @@ class Status(Protocol):
 
     Items are plain data like everything else here — `(label, handler)`, with a
     `None` handler for a line that is only there to be read and a `None` label
-    for a separator. The mirror rebuilds the whole list whenever it changes
+    for a separator. A `Submenu` label carries its own list in the handler's
+    place, and a `Checked` label is drawn with a checkmark (spec 03). The mirror rebuilds the whole list whenever it changes
     rather than mutating one; a menu is small, and the alternative is a second
     place the state lives.
 

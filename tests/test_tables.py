@@ -26,13 +26,15 @@ TABLES = [
     pytest.param("ball_worker", 106, marks=slow),
     ("menubar", 178),
     ("own_sounds", 18),
-    ("seam", 59),
+    ("seam", 65),
     pytest.param("raise", 63 if sys.platform == "darwin" else 60, marks=slow),   # 3 real-seam legs
     ("log", 34),
     pytest.param("focus", 40, marks=mac),
     pytest.param("macos_edges", 124, marks=mac),
     pytest.param("menu_light", 34, marks=mac),
     pytest.param("login", 35, marks=mac),
+    pytest.param("menu_shapes", 8, marks=mac),
+    pytest.param("permissions", 45, marks=mac),
 ]
 
 

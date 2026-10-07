@@ -53,7 +53,7 @@ from AppKit import (NSAppearance, NSAppearanceNameAqua, NSAppearanceNameDarkAqua
                     NSApplicationActivationPolicyRegular, NSBezierPath,
                     NSBitmapImageFileTypePNG, NSBitmapImageRep, NSColor,
                     NSCompositingOperationClear, NSCompositingOperationSourceAtop,
-                    NSCompositingOperationSourceOver,
+                    NSCompositingOperationSourceOver, NSControlStateValueOn,
                     NSDeviceRGBColorSpace, NSEventMaskAny, NSEventMaskLeftMouseUp,
                     NSEventMaskRightMouseUp, NSEventModifierFlagControl,
                     NSEventModifierFlagOption,
@@ -67,7 +67,7 @@ from Quartz import (CAKeyframeAnimation, CALayer, CAShapeLayer, CATransaction,
                     CGContextBeginTransparencyLayer, CGContextEndTransparencyLayer,
                     CGContextSetAlpha, CGPathCreateWithEllipseInRect, CGRectMake)
 
-from .ports import Alternate, BallIcon
+from .ports import Alternate, BallIcon, Checked, Submenu
 
 
 class Sound:
@@ -1040,6 +1040,163 @@ class Login:
         return True, "System Settings opened at Login Items — wobble is under App Background Activity"
 
 
+# --- the permissions, read without asking (spec 03) ---------------------------
+# The classic pane addresses, both landing on macOS 26.6.2 (spec 03, task 01).
+# Not public API: a pane that stops landing is `openURL_` answering False, said.
+_PANE_URL = "x-apple.systempreferences:com.apple.preference.security?Privacy_{}"
+_PANES = {"bluetooth": "Bluetooth", "accessibility": "Accessibility", "automation": "Automation"}
+
+# `CBManagerAuthorization`, by value: 0 notDetermined, 1 restricted, 2 denied, 3 allowedAlways.
+_BLUETOOTH = {0: "not asked", 1: "refused", 2: "refused", 3: "granted"}
+
+# `AEDeterminePermissionToAutomateTarget`'s answers (spec 03, task 01): errAEEventNotPermitted,
+# errAEEventWouldRequireUserConsent, and procNotFound while the app is not running.
+_AE_REFUSED, _AE_NOT_ASKED, _AE_NOT_RUNNING = -1743, -1744, -600
+
+
+class _AEDesc(ctypes.Structure):
+    _fields_ = [("descriptorType", ctypes.c_uint32), ("dataHandle", ctypes.c_void_p)]
+
+
+def _fourcc(code: str) -> int:
+    return int.from_bytes(code.encode(), "big")
+
+
+_CS = None
+
+
+def _automation_status(bundle: str) -> int:
+    """macOS's answer on sending Apple events to `bundle`, never prompting. An OSStatus.
+
+    Through ctypes, as task 01 measured it: PyObjC wraps no AE call. CoreServices
+    is loaded on first use, like `_AX`.
+    """
+    global _CS
+    if _CS is None:
+        cs = ctypes.CDLL("/System/Library/Frameworks/CoreServices.framework/CoreServices")
+        cs.AECreateDesc.argtypes = [ctypes.c_uint32, ctypes.c_void_p, ctypes.c_long,
+                                    ctypes.POINTER(_AEDesc)]
+        cs.AECreateDesc.restype = ctypes.c_int16
+        cs.AEDeterminePermissionToAutomateTarget.argtypes = [
+            ctypes.POINTER(_AEDesc), ctypes.c_uint32, ctypes.c_uint32, ctypes.c_bool]
+        cs.AEDeterminePermissionToAutomateTarget.restype = ctypes.c_int32
+        cs.AEDisposeDesc.argtypes = [ctypes.POINTER(_AEDesc)]
+        _CS = cs
+    data = bundle.encode()
+    target = _AEDesc()
+    err = _CS.AECreateDesc(_fourcc("bund"), data, len(data), ctypes.byref(target))
+    if err:
+        return err
+    try:
+        # Any event class and id: the grant is per pair of apps, not per event.
+        return _CS.AEDeterminePermissionToAutomateTarget(
+            ctypes.byref(target), _fourcc("****"), _fourcc("****"), False)
+    finally:
+        _CS.AEDisposeDesc(ctypes.byref(target))
+
+
+def _open_url(url: str) -> bool:
+    address = NSURL.URLWithString_(url)
+    return address is not None and bool(NSWorkspace.sharedWorkspace().openURL_(address))
+
+
+class Permissions:
+    """Bluetooth, Accessibility and Automation, as macOS answers for this process (spec 03).
+
+    "This process" is whoever macOS holds responsible for it: wobble.app when the
+    app started it, the terminal when a terminal did (task 48). The grants are
+    pinned to the launcher's bytes, so a rebuild drops them, which is the silent
+    failure the menu now says (principle 7).
+
+    Every read is fresh. Revoking Accessibility takes effect at once
+    (`Focus._trusted`), and a cached grant is the menu saying something the OS
+    no longer does. Automation is listed per app in `_TAB_SCRIPTS`, the apps
+    wobble sends Apple events to; macOS cannot answer for one that is not
+    running, and says "not running" then.
+
+    `manager`, `ax`, `automation` and `opener` are for `check_permissions.py`,
+    which points them at fakes.
+    """
+
+    def __init__(self, *, manager=None, ax: Callable = _ax,
+                 automation: Callable[[str], int] = _automation_status,
+                 opener: Callable[[str], bool] = _open_url) -> None:
+        self._manager, self._ax, self._automation, self._open = manager, ax, automation, opener
+
+    def kinds(self) -> tuple[str, ...]:
+        return ("bluetooth", "accessibility", *(f"automation:{app}" for app in _TAB_SCRIPTS))
+
+    def state(self, kind: str) -> tuple[str | None, str | None]:
+        try:
+            if kind == "bluetooth":
+                return self._bluetooth()
+            if kind == "accessibility":
+                return self._accessibility()
+            if kind.startswith("automation:"):
+                return self._automation_of(kind.partition(":")[2])
+        except Exception as exc:          # a seam fault must not stop the loop
+            return None, f"whether {kind} is granted could not be read ({exc!r})"
+        return None, f"there is no permission called {kind!r}"
+
+    def _bluetooth(self) -> tuple[str | None, str | None]:
+        if self._manager is None:
+            try:
+                from CoreBluetooth import CBManager   # noqa: PLC0415 — only when asked
+            except ImportError as exc:
+                return None, f"whether Bluetooth is granted could not be read ({exc})"
+            self._manager = CBManager
+        answer = int(self._manager.authorization())
+        state = _BLUETOOTH.get(answer)
+        if state == "granted":
+            return state, None
+        if state == "not asked":
+            return state, "Bluetooth was never asked for: macOS asks the first time the ball is looked for"
+        if answer == 1:
+            return state, ("Bluetooth is restricted on this Mac, by a profile or Screen Time: "
+                           "the ball cannot connect")
+        if state == "refused":
+            return state, ("Bluetooth is switched off in Privacy & Security: "
+                           "the ball cannot connect")
+        return None, f"Bluetooth answered {answer}, which wobble does not know"
+
+    def _accessibility(self) -> tuple[str | None, str | None]:
+        ax, _why = self._ax()
+        if ax is None:
+            return None, "the Accessibility API is not available here, so whether it is granted cannot be read"
+        if _is_trusted(ax):
+            return "granted", None
+        return "refused", ("Accessibility is switched off in Privacy & Security: B raises "
+                           "no window, and a signal plays even while you look at its session")
+
+    def _automation_of(self, bundle: str) -> tuple[str | None, str | None]:
+        name = bundle.rsplit(".", 1)[-1]
+        status = self._automation(bundle)
+        if status == 0:
+            return "granted", None
+        if status == _AE_REFUSED:
+            return "refused", (f"Automation of {name} is switched off in Privacy & "
+                               f"Security: B cannot pick the tab a session is in")
+        if status == _AE_NOT_ASKED:
+            return "not asked", (f"Automation of {name} was never asked for: macOS asks the first "
+                                 f"time B picks a tab there")
+        if status == _AE_NOT_RUNNING:
+            return "not running", f"{name} is not running, so macOS answers nothing about automating it"
+        return None, f"whether wobble may automate {name} could not be read (OSStatus {status})"
+
+    def settings(self, kind: str) -> tuple[bool, str | None]:
+        pane = _PANES.get(kind.partition(":")[0])
+        if pane is None:
+            return False, f"there is no System Settings pane for {kind!r}"
+        where = f"Privacy & Security › {pane}"
+        try:
+            opened = self._open(_PANE_URL.format(pane))
+        except Exception as exc:          # a seam fault must not stop the loop
+            return False, f"System Settings could not be opened at {where} ({exc!r})"
+        if not opened:
+            return False, f"System Settings did not open at {where}: macOS refused the address"
+        return True, f"System Settings opened at {where}"
+
+
 class _Clicks(NSObject):
     """The target half of a target/action pair.
 
@@ -1522,30 +1679,49 @@ class Status:
         AppKit swaps two adjacent items whose key equivalents match and whose
         modifier masks differ, so both get the empty key and the line above
         loses the ⌘ mask `addItemWithTitle` gives it.
+
+        A `Submenu` label opens the list in its handler's place beside it, and a
+        `Checked` one is drawn with a checkmark (spec 03, task 02). The submenu's
+        items share the one `handlers` list: a tag is the item's place counted
+        across every list in the order drawn, the parent line taking a place of
+        its own, so one table still routes every click.
         """
         self._ensure()
+        handlers: list = []
+        menu = self._build(items, handlers)
+        self._menu_clicks.handlers = handlers
+        self._menu = menu
+
+    def _build(self, items, handlers: list):
         menu = NSMenu.alloc().init()
         # Off, or every rebuild would fight AppKit over which items are usable:
         # with automatic enabling on, an item with no validated target is greyed
         # whatever `setEnabled_` was told.
         menu.setAutoenablesItems_(False)
-        handlers = []
-        for index, (label, handler) in enumerate(items):
+        for label, handler in items:
             if label is None:
                 menu.addItem_(NSMenuItem.separatorItem())
                 handlers.append(None)
                 continue
+            if isinstance(label, Submenu):
+                # No action and no target: AppKit opens a submenu on hover, and
+                # an action here would fire on a click as well.
+                item = menu.addItemWithTitle_action_keyEquivalent_(label, None, "")
+                handlers.append(None)
+                item.setSubmenu_(self._build(handler, handlers))
+                continue
             item = menu.addItemWithTitle_action_keyEquivalent_(label, "chose:", "")
             item.setTarget_(self._menu_clicks)
-            item.setTag_(index)
+            item.setTag_(len(handlers))
             item.setEnabled_(handler is not None)
-            if isinstance(label, Alternate) and index > 0:
+            if isinstance(label, Checked):
+                item.setState_(NSControlStateValueOn)
+            if isinstance(label, Alternate) and menu.numberOfItems() > 1:
                 menu.itemAtIndex_(menu.numberOfItems() - 2).setKeyEquivalentModifierMask_(0)
                 item.setKeyEquivalentModifierMask_(NSEventModifierFlagOption)
                 item.setAlternate_(True)
             handlers.append(handler)
-        self._menu_clicks.handlers = handlers
-        self._menu = menu
+        return menu
 
     def _popup(self) -> None:
         """Open the menu under the item. Blocks until it is dismissed.

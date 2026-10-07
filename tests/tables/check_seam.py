@@ -185,6 +185,7 @@ PORTS = {
     "Status": (ports.Status, null.Status),
     "Idle": (ports.Idle, null.Idle),
     "Login": (ports.Login, null.Login),
+    "Permissions": (ports.Permissions, null.Permissions),
 }
 
 # How to call each method, and what "honest, not silent" means for its return:
@@ -271,8 +272,11 @@ CONTRACT = {
         want_call="on_click",  # special-cased below: handler identity
     ),
     ("Status", "menu"): dict(
-        args=([("Open", None), (None, None)],), kwargs={}, want=None,
-        want_call=("Status.menu", (["Open", None],))),
+        args=([("Open", None), (None, None),
+               (ports.Submenu("Settings"), [(ports.Checked("On"), None)])],),
+        kwargs={}, want=None,
+        # A submenu as `[label, [its labels]]` (spec 03, task 02).
+        want_call=("Status.menu", (["Open", None, ["Settings", ["On"]]],))),
     ("Idle", "seconds"): dict(
         args=(), kwargs={},
         want=(None, "no platform: there is no way to ask when a key or the mouse last moved"),
@@ -289,6 +293,17 @@ CONTRACT = {
         args=(), kwargs={},
         want=(False, "no platform: there is no list of what opens at login to show"),
         want_call=("Login.settings", ())),
+    ("Permissions", "kinds"): dict(
+        args=(), kwargs={}, want=(),
+        want_call=("Permissions.kinds", ())),
+    ("Permissions", "state"): dict(
+        args=("accessibility",), kwargs={},
+        want=(None, "no platform: there is no permission to read"),
+        want_call=("Permissions.state", ("accessibility",))),
+    ("Permissions", "settings"): dict(
+        args=("accessibility",), kwargs={},
+        want=(False, "no platform: there is no System Settings to open"),
+        want_call=("Permissions.settings", ("accessibility",))),
     ("Status", "pump"): dict(
         args=(), kwargs={}, want=None,
         want_call=None),  # deliberately NOT recorded (null.py lines 111-120)
