@@ -73,11 +73,11 @@ venv/bin/python3 tools/build_app.py --install     # creates /Applications/wobble
 This needs Apple's command line tools (`xcode-select --install`). The app runs the code in this
 folder, so do not move the folder afterwards, or build the app again if you do.
 
-**Open it at login.** Click the menu bar ball and choose **Open wobble at login**. macOS shows a
-*Background Items Added* notification: that is expected, and wobble is listed in System Settings
-under **General › Login Items & Extensions › App Background Activity**. Choose **Stop opening
-wobble at login** to undo it. If you switch wobble off in that list, the menu says **Off in Login
-Items — open System Settings**, and only that switch turns it back on.
+**Open it at login.** Click the menu bar ball and choose **Settings › Open wobble at login**. macOS
+shows a *Background Items Added* notification: that is expected, and wobble is listed in System
+Settings under **General › Login Items & Extensions › App Background Activity**. The line is
+checked while it is on; choose it again to undo it. If you switch wobble off in that list, the
+line says **Off in Login Items — open System Settings**, and only that switch turns it back on.
 
 **Run one wobble at a time.** A second one refuses to start while the first is running. Quit the
 app before starting one from a terminal, and the other way round.
@@ -106,6 +106,12 @@ macOS asks for two permissions. Both are in **System Settings › Privacy & Secu
 
 Started from a terminal, the permissions belong to the terminal app (Terminal, Warp, VS Code),
 so that is the app to switch on in the list. Started as `wobble.app`, they belong to wobble.
+
+**If one is switched off, the menu says so.** A line at the top of the menu says what stopped
+working, for example *⚠ Accessibility off — B raises no window · Open…*, and the menu bar ball
+has a ⚠ beside it. Click the line and System Settings opens at the right pane. Both go away by
+themselves once it is allowed again. **Settings ›** in the menu lists every permission's state,
+including Automation for Terminal, which wobble uses to pick a session's tab.
 
 ## What it tells you
 
@@ -162,9 +168,10 @@ beside it is how many sessions are waiting.
 | <img src="docs/menubar-quiet-2026-10-02.png" width="38" alt="the ball with a dark centre and 1 beside it"> | the same session while you are looking at its window: still counted, but quiet and dark |
 | <img src="docs/menubar-silenced-2026-10-02.png" width="28" alt="the ball with a blue centre and no number"> | a session you silenced: the centre is blue, and it is no longer counted |
 
-Click it for the menu: every waiting session (click one to go to it; hold **⌥** to silence it
-instead), **Mute the sounds** (the ball still buzzes and lights), connect or disconnect the ball,
-whether it opens at login, and **Quit wobble**.
+Click it for the menu: a ⚠ line for each permission switched off, every waiting session (click
+one to go to it; hold **⌥** to silence it instead), **Mute the sounds** (the ball still buzzes and
+lights), connect or disconnect the ball, **Settings ›** (each permission, and whether wobble opens
+at login), and **Quit wobble**.
 
 ## Running with no ball
 
@@ -215,8 +222,8 @@ the yellow light wobble sent it until a Switch writes its own.
 | **A session in the Claude desktop app never signals** | only the Code tab, run on this Mac (Local), loads Claude Code's hooks |
 | **The ball never connects** | press its top button while wobble is running. Check that no Switch and no other wobble holds it, and that Bluetooth is allowed |
 | **The ball buzzes but plays no cry** | run `venv/bin/python3 tools/fetch_cry.py`. It needs ffmpeg |
-| **The button quiets the ball but no window comes forward** | allow Accessibility for the app wobble runs in, then restart wobble |
-| **wobble does not start at login** | the menu's line says why: **Open wobble at login** means it is off; **Off in Login Items** means switch wobble on in System Settings › General › Login Items & Extensions › App Background Activity |
+| **The button quiets the ball but no window comes forward** | the menu has a ⚠ line if Accessibility is off: click it and allow the app wobble runs in. If no window comes forward after that, restart wobble |
+| **wobble does not start at login** | **Settings ›** in the menu says why: **Open wobble at login** unchecked means it is off; **Off in Login Items** means switch wobble on in System Settings › General › Login Items & Extensions › App Background Activity |
 | **"another wobble daemon is already running"** | quit the app, or the other terminal, first |
 | **The ball's light stays on after wobble quits** | normal: a light the ball holds is only turned off by a command. Start wobble and quit it from the menu |
 

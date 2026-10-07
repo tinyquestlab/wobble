@@ -667,20 +667,39 @@ venv/bin/python3 -m src.daemon          # the real thing
     a needs still beating after a quick yes, or back after a denial; a prompt never shown that
     beats on (the risk task 72 accepted — write down what asked).
 
-30. **wobble opens at login** (spec 02). With `/Applications/wobble.app` built and running:
-    - **Switch it on, log out and in.** The menu's line reads *Stop opening wobble at login*, and
-      after the login the app is running with its grants: B raises a window and the ball
-      connects, with no prompt. `var/app.out` says `at login  on`.
+30. **wobble opens at login** (spec 02; the line is in **Settings ›** since spec 03). With
+    `/Applications/wobble.app` built and running:
+    - **Switch it on, log out and in.** *Open wobble at login* is checked, and after the login
+      the app is running with its grants: B raises a window and the ball connects, with no
+      prompt. `var/app.out` says `at login  on`.
     - **Switch it off, log out and in.** wobble does not start.
     - **Switch it off in System Settings** › General › Login Items & Extensions › App Background
       Activity, with it on in the menu. The line reads *Off in Login Items — open System
-      Settings*, and clicking it opens that pane; switching wobble on there brings the line back
-      to *Stop opening*.
+      Settings*, and clicking it opens that pane; switching wobble on there brings the line back,
+      checked.
     - **Quit it after a login.** It stays quit until the next login.
 
     **What would be a defect:** a prompt for Bluetooth or Accessibility after a login; the line
-    saying *Stop opening* while System Settings has it off; a click that changes nothing and says
-    nothing; wobble coming back after a Quit.
+    checked while System Settings has it off; a click that changes nothing and says nothing;
+    wobble coming back after a Quit.
+
+31. **A permission switched off says so in the menu** (spec 03). With `/Applications/wobble.app`
+    built and running, and every permission allowed:
+    - **Before anything.** No ⚠ line, no ⚠ in the title. **Settings ›** has *Bluetooth* and
+      *Accessibility* checked, and the log has a `permission` line for each, with the app's own
+      answers (spec 03 task 01 measured them only from a terminal).
+    - **Switch Accessibility off** in Privacy & Security › Accessibility. Within two seconds the
+      menu's top line reads *⚠ Accessibility off — B raises no window · Open…*, the title ends in
+      ⚠, and the log says `PERMISSION OFF` once. Click the line: System Settings opens at
+      Accessibility.
+    - **Switch it back on.** The line and the ⚠ go by themselves, with no restart, and the log
+      says `accessibility granted` once.
+    - **Bluetooth off** in Privacy & Security › Bluetooth: its own ⚠ line, and the link line still
+      says what it says today.
+
+    **What would be a defect:** a refusal the menu does not show within a few seconds; a ⚠ that
+    stays after the grant; a pane that is not the permission's; a log line every two seconds
+    instead of once per change; any line that reads ✓ for a permission macOS could not answer.
 
 ### When your own eye is the instrument, point a camera at it
 

@@ -84,7 +84,7 @@ Asked for 2026-09-30: wobble could have a floating ball on screen that does what
 they can see what having one is like. It is a window, and it moves, so it needs the same amendment
 as the settings screen.
 
-## Half placed — wobble as an app
+## Built — wobble as an app
 
 Built in spec 01 as task 50, after the constitution's amendment of 2026-09-29 (a locally built
 `.app` is not a release) and task 48's measurement. `tools/build_app.py` builds
@@ -93,13 +93,16 @@ Accessibility under wobble, and a start script in the repo, so a `git pull` or a
 the grant. It asks for Accessibility once, on first launch, through the system's own prompt: task
 48 measured that the front window's title cannot be read without it. Opening at login is built
 (spec 02, `specs/02-open-at-login/`): a LaunchAgent that calls `open`, switched from the menu, since
-`SMAppService` registers only the calling bundle and would have meant new launcher bytes. What is
-left:
+`SMAppService` registers only the calling bundle and would have meant new launcher bytes. The last
+two items were settled in spec 03 (`specs/03-permissions-in-the-menu/`):
 
-- raising windows through Launch Services (`NSWorkspace.openApplication`), which needs no
-  permission, so Accessibility might not be needed at all;
-- saying a missing permission somewhere a person looks: with no terminal, the daemon's words reach
-  only `var/app.out` and the day's log.
+- **Raising windows through Launch Services** (`NSWorkspace.openApplication`), so Accessibility
+  might not be needed: **decided not to do** (2026-10-07). Accessibility also reads the front
+  window's title, which is how a signal stays quiet while you look at its session, and no route
+  without a permission can read it. wobble.app would still ask for Accessibility.
+- **Saying a missing permission somewhere a person looks**: **built**. A refused permission is a
+  ⚠ line at the top of the menu that opens its System Settings pane, and a ⚠ in the title.
+  **Settings ›** lists every permission's state, with the login switch moved in.
 
 ## Built — silencing a session
 
