@@ -103,5 +103,14 @@ macOS. Building comes after.
 
 | # | Criterion | Result |
 |---|---|---|
+| 1 | Accessibility revoked → alert, ⚠, ✗, pane | built; within 2 s, not one refresh (learnings.md). `check_menubar`, `check_daemon_edges`; the app itself is Part B step 31 |
+| 2 | Granted again → both go by themselves | built; `check_daemon_edges`; Part B step 31 |
+| 3 | Bluetooth refused → its own line; radio off stays the link's | built; `check_menubar` row, `check_daemon_edges` with a ball |
+| 4 | Automation refused → alert and ✗; never asked not listed | built; `check_menubar`, `check_permissions` |
+| 5 | Login switch in `Settings ›`, checkmark | built; `check_menubar`, `check_menu_shapes` |
+| 6 | Each change said once | built; `check_daemon_edges` |
+| 7 | Unreadable never shown as granted | built; `check_permissions`, `check_menubar` |
+| 8 | Null seam and `--no-menubar` unchanged but the log | null `Permissions` has no kinds; `check_seam`, `check_menubar` |
+| 9 | Suite green, Part B steps | full suite green; Part B step 31 added, waiting for the desk |
 
 ---

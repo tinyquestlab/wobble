@@ -1,10 +1,10 @@
 # Session — 03-permissions-in-the-menu
 
-## Status: planned · 2026-10-07 · spec written, waiting for the go-ahead
+## Status: done · 2026-10-07 · all 7 tasks built; Part B step 31 waits for the desk
 
 ## Next
-Task 01: measure the Bluetooth, Accessibility and Automation reads and the Settings pane URLs,
-by hand.
+By hand: `docs/DESK-CHECKS.md` Part B step 31 in wobble.app (revoke and regrant Accessibility),
+and spec 02's step 30 at the next logout.
 
 **Source branch:** main · **Working branch:** main
 **Repo(s):** wobble · **PR:** none, solo repo
@@ -13,11 +13,15 @@ by hand.
 None. The menu's shape was approved from `var/drawings/spec03-menu.html`.
 
 ## Tasks status
-0 of 7 (`tasks.md`).
+7 of 7 (`tasks.md`).
 
 ## What was done
 - 2026-10-07: spec written. The ROADMAP's Launch Services raise is decided not to do (`spec.md` §
   Context).
+- 2026-10-07: task 01 measured the three reads and the panes from a terminal.
+- 2026-10-07: tasks 02–05 built: the seam's submenu and checkmark, the `Permissions` port, the menu
+  (alerts, ⚠, `Settings ›`, login moved in), the daemon reading every 2 s.
+- 2026-10-07: tasks 06–07: README, ROADMAP, DESK-CHECKS step 31; learnings sorted into NOTES.md.
 
 ## Inputs ingested
 None.

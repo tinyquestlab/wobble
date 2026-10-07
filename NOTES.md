@@ -37,6 +37,11 @@ that spec's `learnings.md`; this is the short, still-true version. Sorted from s
 - 2026-10-07 (spec 02, task 05): no paid Apple Developer account is needed. The app is built on
   each Mac and never downloaded, so it is never quarantined and Gatekeeper never assesses it.
   Options, if that ever changes: `docs/no-developer-account-2026-10-07.md`.
+- 2026-10-07 (spec 03): a refused permission is a ⚠ line at the top of the menu that opens its
+  System Settings pane, and a ⚠ in the title; `Settings ›` holds every permission's state and the
+  login switch. Raising windows through Launch Services to drop Accessibility was decided not to
+  do: Accessibility also reads the front window's title, and nothing without a permission can.
+  "Open…" sits at the end of the alert's label: a plain `NSMenuItem` has no right-aligned column.
 
 ## Learnings
 
@@ -103,3 +108,8 @@ that spec's `learnings.md`; this is the short, still-true version. Sorted from s
   rewrite stays off. Only the person lifts it there; wobble sends them to the pane.
 - 2026-10-07 (spec 02, task 03): `check_daemon_edges.py`'s mutants quote `daemon.py` lines whole,
   so a trailing comma stales one. Grep `tests/tables/` before editing a daemon line.
+- 2026-10-07 (spec 03, task 01): Automation is readable without a prompt only while the target
+  app runs; `AEDeterminePermissionToAutomateTarget` answers -600 otherwise, whatever TCC holds.
+  The daemon keeps its last answer then.
+- 2026-10-07 (spec 03, task 05): `CBManager.authorization()` costs ~12 ms a read, so permissions
+  are read every 2 s, not on each of the menu's four refreshes a second.

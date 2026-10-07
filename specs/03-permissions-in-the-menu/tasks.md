@@ -1,6 +1,6 @@
 # Tasks — S03
 
-**4 of 7 done · next: 05 — the daemon: read each refresh, say each change, wire the clicks**
+**7 of 7 done · Part B step 31 waits for the desk**
 
 - [x] **01 — measure the three reads and the panes.** By hand, before any code, from wobble.app
   and from a terminal. Questions to answer:
@@ -35,13 +35,22 @@
 
   Done 2026-10-07: 212 rows (178 before). "Open…" is part of the alert's label, not
   right-aligned: see learnings.md.
-- [ ] **05 — the daemon: read each refresh, say each change, wire the clicks.** Rows in
+- [x] **05 — the daemon: read each refresh, say each change, wire the clicks.** Rows in
   `check_daemon_edges.py`.
-- [ ] **06 — docs.**
+
+  Done 2026-10-07: read every 2 s, not each refresh (Bluetooth's read is ~12 ms, learnings.md).
+  14 rows and 7 mutants in `check_daemon_edges.py`, with `perms` and `permission` scripted in
+  `edge_harness.py`.
+- [x] **06 — docs.**
   - README: the menu and `Settings ›`.
   - ROADMAP: item 1 decided not to do, with why; item 2 built.
   - `docs/DESK-CHECKS.md` Part B: revoke Accessibility in the app and watch the line appear; grant
     it and watch the line go.
-- [ ] **07 — close learnings.md and promote**
+
+  Done 2026-10-07: Part B step 31; step 30 reworded for the login line's new place.
+- [x] **07 — close learnings.md and promote**
+
+  Done 2026-10-07: three entries to NOTES.md, the rest stay in learnings.md. Nothing for
+  CLAUDE.md, lessons or rules.
 
 ---
