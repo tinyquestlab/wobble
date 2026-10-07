@@ -9,7 +9,8 @@ PyObjC — which is exactly what `null.py` is.
 
 Four, because `plan.md` names four. A port arrives here when a task needs it — and
 task 40 needed a fifth, `Process`, to ask whether a session's claude still runs,
-and task 64 a sixth, `Idle`, to ask whether anybody is at the keyboard.
+and task 64 a sixth, `Idle`, to ask whether anybody is at the keyboard. Spec 02
+added a seventh, `Login`, to open wobble when somebody logs in.
 
 `@runtime_checkable` makes `isinstance(x, Sound)` a real check on method names —
 the cheapest proof that an implementation did not drift from what it claims.
@@ -240,6 +241,34 @@ class Idle(Protocol):
     """
 
     def seconds(self) -> tuple[float | None, str | None]: ...
+
+
+@runtime_checkable
+class Login(Protocol):
+    """Whether wobble opens by itself when somebody logs in (spec 02).
+
+    **`state` returns `(state, why)`, four answers, read fresh on every call:**
+
+      - `("off", None)` — nothing opens it.
+      - `("on", None)` — it opens at the next login. A `why` beside it is a
+        doubt the OS left: asked and not answered.
+      - `("disabled", "…")` — set to open, and switched off in the OS's own
+        list of what starts at login. The person did that, there, and only
+        they can undo it there; `settings` opens that list.
+      - `(None, "…")` — it cannot be set at all, saying why.
+
+    `set(on)` answers `(ok, why)` like `Sound.play`, and `why` is said in both
+    cases. Nothing is cached: a copy kept here would be the menu claiming
+    something the OS no longer says.
+    """
+
+    def state(self) -> tuple[str | None, str | None]: ...
+
+    def set(self, on: bool) -> tuple[bool, str | None]: ...
+
+    def settings(self) -> tuple[bool, str | None]:
+        """Open the OS's own list of what starts at login. `(ok, why)`."""
+        ...
 
 
 @runtime_checkable

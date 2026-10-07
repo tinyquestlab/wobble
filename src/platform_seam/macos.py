@@ -1,9 +1,10 @@
 """The macOS half of the seam — the one file in this project that names an OS.
 
-All six ports are real. `Sound` and `Status` are what the menu bar mirror needs
+All seven ports are real. `Sound` and `Status` are what the menu bar mirror needs
 (task 12); `Frontmost` and `Focus` are what B does with the signal it took
 (task 14); `Process` is whether a session's claude still runs (task 40); `Idle`
-is how long since a key or the mouse moved (task 64). Every
+is how long since a key or the mouse moved (task 64); `Login` is wobble.app
+opening by itself (spec 02). Every
 one of them answers `(ok, why not)` rather than raising: a
 notifier that dies because a window would not come forward has become the
 silence it exists to prevent (principle 7).
@@ -39,9 +40,11 @@ from __future__ import annotations
 
 import ctypes
 import os
+import plistlib
 import struct
 import subprocess
 import time
+from pathlib import Path
 from typing import Callable
 
 from AppKit import (NSAppearance, NSAppearanceNameAqua, NSAppearanceNameDarkAqua,
@@ -934,6 +937,107 @@ class Idle:
                 kCGEventSourceStateHIDSystemState, kCGAnyInputEventType)), None
         except Exception as exc:          # a seam fault must not stop the loop
             return None, f"the HID idle time is out of reach ({exc!r})"
+
+
+APP = Path("/Applications/wobble.app")
+AGENT = Path.home() / "Library" / "LaunchAgents" / "local.wobble.login.plist"
+# System Settings' own words on macOS 26; "Allow in the Background" on 15 (spec 02, task 01).
+SWITCHED_OFF = ("switched off in System Settings › General › Login Items & Extensions › "
+                "App Background Activity — switch wobble on there")
+
+# `SMAppService.Status`, by value: 0 notRegistered, 1 enabled, 2 requiresApproval, 3 notFound.
+_REQUIRES_APPROVAL = 2
+
+
+def agent_plist(app: Path) -> dict:
+    """The LaunchAgent: `open` the app once, at login, as a double-click would (spec 02).
+
+    No `KeepAlive`: Quit has to stay quit until the next login.
+    `AssociatedBundleIdentifiers` is what makes System Settings list it as wobble.
+    """
+    return {
+        "Label": "local.wobble.login",
+        "ProgramArguments": ["/usr/bin/open", str(app)],
+        "RunAtLoad": True,
+        "LimitLoadToSessionType": "Aqua",
+        "AssociatedBundleIdentifiers": ["local.wobble"],
+    }
+
+
+class Login:
+    """wobble.app opened at login by a LaunchAgent that calls `open` (spec 02).
+
+    **A LaunchAgent and not SMAppService.** SMAppService registers only the
+    calling app's own bundle, and the daemon is a Python child of the launcher:
+    the call would have to live in `tools/app/launcher.c`, which is new bytes
+    and every grant asked again (task 48). The agent changes no byte of the
+    bundle, and `open` goes through Launch Services as a double-click does, so
+    the grants hold — measured at a real login, spec 02 task 01.
+
+    **The file says whether it was asked for; macOS says whether it is
+    allowed.** Switched off in System Settings, the file stays where it is and
+    `launchd` drops it, and a rewrite of the same bytes is still off (task
+    01). So `state` reads both, and `set(True)` never tries to get round it.
+    macOS's verdict comes from `SMAppService.statusForLegacyURL_`, 0.27 ms a
+    read, with no root; it reads `notFound` for ~2 s after a write, and that
+    counts as on. ServiceManagement is imported lazily, like `_AX`.
+
+    `app`, `agent` and `service` are for `check_login.py`, which points them at
+    a temporary folder and a fake SMAppService.
+    """
+
+    def __init__(self, *, app: Path = APP, agent: Path = AGENT, service=None) -> None:
+        self.app, self.agent, self._service = app, agent, service
+
+    def _sm(self):
+        if self._service is None:
+            from ServiceManagement import SMAppService
+            self._service = SMAppService
+        return self._service
+
+    def state(self) -> tuple[str | None, str | None]:
+        asked = self.agent.exists()
+        if not self.app.is_dir():
+            return None, (f"{self.agent.name} opens {self.app}, which is not there — build it with "
+                          f"tools/build_app.py --install" if asked else
+                          f"wobble.app is not in /Applications — build it with "
+                          f"tools/build_app.py --install first")
+        if not asked:
+            return "off", None
+        try:
+            verdict = self._sm().statusForLegacyURL_(NSURL.fileURLWithPath_(str(self.agent)))
+        except Exception as exc:          # a seam fault must not stop the loop
+            return "on", f"macOS could not be asked whether it allows it ({exc!r})"
+        if verdict == _REQUIRES_APPROVAL:
+            return "disabled", SWITCHED_OFF
+        return "on", None
+
+    def set(self, on: bool) -> tuple[bool, str | None]:
+        if not on:
+            try:
+                self.agent.unlink()
+            except FileNotFoundError:
+                return True, "wobble already did not open at login"
+            except OSError as exc:
+                return False, f"{self.agent} could not be removed ({exc}), so wobble still opens at login"
+            return True, f"wobble no longer opens at login ({self.agent} removed)"
+        if not self.app.is_dir():
+            return False, (f"wobble.app is not in /Applications, so there is nothing to open at "
+                           f"login — build it with tools/build_app.py --install first")
+        try:
+            self.agent.parent.mkdir(parents=True, exist_ok=True)
+            self.agent.write_bytes(plistlib.dumps(agent_plist(self.app)))
+        except OSError as exc:
+            return False, f"{self.agent} could not be written ({exc}), so wobble does not open at login"
+        return True, (f"wobble opens at login from now on ({self.agent}); macOS says "
+                      f"\"Background Items Added\"")
+
+    def settings(self) -> tuple[bool, str | None]:
+        try:
+            self._sm().openSystemSettingsLoginItems()
+        except Exception as exc:          # a seam fault must not stop the loop
+            return False, f"System Settings could not be opened at Login Items ({exc!r})"
+        return True, "System Settings opened at Login Items — wobble is under App Background Activity"
 
 
 class _Clicks(NSObject):

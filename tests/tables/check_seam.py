@@ -184,6 +184,7 @@ PORTS = {
     "Process": (ports.Process, null.Process),
     "Status": (ports.Status, null.Status),
     "Idle": (ports.Idle, null.Idle),
+    "Login": (ports.Login, null.Login),
 }
 
 # How to call each method, and what "honest, not silent" means for its return:
@@ -276,6 +277,18 @@ CONTRACT = {
         args=(), kwargs={},
         want=(None, "no platform: there is no way to ask when a key or the mouse last moved"),
         want_call=("Idle.seconds", ())),
+    ("Login", "state"): dict(
+        args=(), kwargs={},
+        want=(None, "no platform: there is no way to open wobble at login"),
+        want_call=("Login.state", ())),
+    ("Login", "set"): dict(
+        args=(True,), kwargs={},
+        want=(False, "no platform: nothing was set to open at login"),
+        want_call=("Login.set", (True,))),
+    ("Login", "settings"): dict(
+        args=(), kwargs={},
+        want=(False, "no platform: there is no list of what opens at login to show"),
+        want_call=("Login.settings", ())),
     ("Status", "pump"): dict(
         args=(), kwargs={}, want=None,
         want_call=None),  # deliberately NOT recorded (null.py lines 111-120)

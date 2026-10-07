@@ -111,6 +111,20 @@ class Idle:
         return None, "no platform: there is no way to ask when a key or the mouse last moved"
 
 
+class Login:
+    def state(self) -> tuple[str | None, str | None]:
+        _record("Login.state")
+        return None, "no platform: there is no way to open wobble at login"
+
+    def set(self, on: bool) -> tuple[bool, str | None]:
+        _record("Login.set", on)
+        return False, "no platform: nothing was set to open at login"
+
+    def settings(self) -> tuple[bool, str | None]:
+        _record("Login.settings")
+        return False, "no platform: there is no list of what opens at login to show"
+
+
 class Status:
     # Nothing to write to, and no shadow title kept — the state is already in the
     # core, and a mirror of a mirror is just somewhere else to be wrong.

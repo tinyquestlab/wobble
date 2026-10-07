@@ -1,4 +1,4 @@
-# The four runtime dependencies of the MVP.
+# The runtime dependencies: the MVP's four, and spec 02's fifth.
 #
 # Verified 2026-09-22 on Python 3.12.14, resolving to bleak 3.0.2 — the version
 # the protocol layer was proven against, which is why the floor is that major
@@ -24,8 +24,15 @@
 # The seam imports it lazily on purpose. If it is missing, only focusing stops —
 # the menu bar and the Mac sound keep working, and B says in words why no window
 # came forward.
+#
+# ServiceManagement arrives at spec 02, for macOS's own verdict on the login
+# agent: switched off in System Settings, the agent's file stays where it was,
+# and only `SMAppService.statusForLegacyURL_` says it will not run (task 01).
+# Imported lazily as well; without it the menu cannot tell on from switched off,
+# and says so.
 
 bleak>=3.0                                  # BLE/GATT, via CoreBluetooth on macOS
 pyobjc-framework-Cocoa>=10.0                # AppKit/Foundation, for the menu bar item
 pyobjc-framework-ApplicationServices>=10.0  # the Accessibility API, for raising a window
 pyobjc-framework-Quartz>=10.0               # Core Animation, for the menu ball's light
+pyobjc-framework-ServiceManagement>=10.0    # macOS's verdict on the login agent

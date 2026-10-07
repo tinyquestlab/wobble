@@ -1,5 +1,5 @@
-"""Picks one implementation of `ports.py` and re-exports it as six singletons:
-`sound`, `frontmost`, `focus`, `process`, `idle`, `status`.
+"""Picks one implementation of `ports.py` and re-exports it as seven singletons:
+`sound`, `frontmost`, `focus`, `process`, `idle`, `login`, `status`.
 
 **Not named `platform`.** A package importable as `platform` would shadow the
 standard library module of that name for the whole process, silently. One
@@ -59,4 +59,5 @@ frontmost = _impl.Frontmost()
 focus = _impl.Focus()
 process = _impl.Process()
 idle = _impl.Idle()
+login = _impl.Login()
 status = _impl.Status()
