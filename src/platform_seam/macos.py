@@ -135,17 +135,19 @@ _PER_APP_S = 0.3
 # what an app deserves to be given.
 _FRONT_APP_S = 0.1
 
+# No restart asked for: a grant reaches a running daemon, which read the front
+# window again a second after it (DESK-CHECKS Part B step 31, 2026-10-07).
 NOT_TRUSTED = (
     "macOS has not granted Accessibility to this process, so no window was "
-    "raised — grant it in System Settings › Privacy & Security › Accessibility "
-    "and restart the daemon. The notification itself is unaffected."
+    "raised — grant it in System Settings › Privacy & Security › Accessibility. "
+    "The notification itself is unaffected."
 )
 
 NOT_TRUSTED_TO_LOOK = (
     "macOS has not granted Accessibility to this process, so there is no way to "
     "see which window is in front — grant it in System Settings › Privacy & "
-    "Security › Accessibility and restart the daemon. Signals will be played "
-    "even when you are already looking at the session that raised them."
+    "Security › Accessibility. Signals will be played even when you are already "
+    "looking at the session that raised them."
 )
 
 # Phrased separately from `_AX_WHY` rather than shared, because the two callers
