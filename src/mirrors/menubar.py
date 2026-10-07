@@ -216,11 +216,31 @@ def _aim(on_attend, session: str):
     return lambda: on_attend(session)
 
 
+def login_line(login: tuple[str | None, str | None], on_login) -> tuple:
+    """The line about opening at login, from the seam's `(state, why)` (spec 02).
+
+    Mute's rule: the label says what the click will do. Switched off in System
+    Settings, the click opens it there, because only the person can lift that
+    switch and wobble never works round it (task 01). Anything else — no app
+    to open, no platform, a state this file does not know — is greyed with the
+    first clause of why, and is never shown as on.
+    """
+    state, why = login
+    if state == "off":
+        return "Open wobble at login", on_login
+    if state == "on":
+        return "Stop opening wobble at login", on_login
+    if state == "disabled":
+        return "Off in Login Items — open System Settings", on_login
+    return f"Cannot open at login: {(why or 'no reason given').split(' — ')[0]}", None
+
+
 def items(ball_connected: bool, *, ball_off: bool = False,
           have_ball_mirror: bool = True, battery: int | None = None,
           pending: tuple[Entry, ...] = (),
           standing: dict[str, Standing] | None = None, muted: bool = False, on_attend=None, on_connect=None,
-          on_disconnect=None, on_mute=None, on_quit=None, on_silence=None) -> list:
+          on_disconnect=None, on_mute=None, on_quit=None, on_silence=None,
+          login: tuple[str | None, str | None] | None = None, on_login=None) -> list:
     """What the menu offers, as `(label, handler)` pairs.
 
     A `None` handler is a line that is only there to be read, and there are three
@@ -286,6 +306,14 @@ def items(ball_connected: bool, *, ball_off: bool = False,
     and shows only while ⌥ is down. A session already silenced has none —
     typing in it is what lifts it, and a row that did nothing would be a lie.
 
+    **Opening at login is the last line above Quit** (spec 02), when `login`
+    is handed in — the seam's `(state, why)`, read by the daemon on every
+    refresh, so a file removed by hand is never shown as still on. It is
+    principle 2's boundary for the same reason Quit is: how the process gets
+    started is not a signal, a state or a queue, and the ball cannot start the
+    daemon either. Above the separator, because choosing the opposite line
+    undoes it, as with mute and the link; see `login_line` for its words.
+
     **Every line, separators included, holds its place in this list.** The seam
     tags each menu item with its index here, so a separator that did not take a
     slot would shift every handler below it onto the wrong line — see `Status.
@@ -323,7 +351,8 @@ def items(ball_connected: bool, *, ball_off: bool = False,
                                       _aim(on_silence, entry.session)))
     waiting = rows[False] + ([SEPARATOR] if rows[False] and rows[True] else []) + rows[True]
     return [*(waiting or [("Nothing waiting", None)]), SEPARATOR,
-            *mute, *link, SEPARATOR, ("Quit wobble", on_quit)]
+            *mute, *link, *([login_line(login, on_login)] if login is not None else []),
+            SEPARATOR, ("Quit wobble", on_quit)]
 
 
 class Menubar:

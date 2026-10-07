@@ -1164,6 +1164,42 @@ async def run(args) -> int:
     # What the menu's rows said last, status words without the countdown, so the
     # log gets a line when one changes and not every poll (task 36).
     said_menu: tuple = ()
+    said_login: tuple = ()
+
+    def at_login(login: tuple[str | None, str | None]) -> None:
+        """Say opening at login when it changes, the first refresh included (spec 02).
+
+        Read off the seam each refresh rather than said only on a click, so a
+        switch in System Settings or a file removed by hand gets its line too,
+        and a day's log answers "did it start by itself".
+        """
+        nonlocal said_login
+        if login == said_login:
+            return
+        said_login = login
+        state, why = login
+        doubt = f" ({why})" if why else ""
+        say("at login", {"off": "off — wobble starts only when somebody opens it",
+                         "on": f"on — macOS opens wobble.app at every login{doubt}",
+                         "disabled": f"asked for, but {why}"}.get(state, f"cannot — {why}"))
+
+    def switch_login() -> None:
+        """The menu's login line: the state read again at the click, then acted on.
+
+        Read again rather than trusted from the label, because the label is
+        whatever the last rebuild said and the disk is what is true now. Off in
+        System Settings, the click opens it there and changes nothing itself.
+        """
+        state, _ = platform_seam.login.state()
+        if state == "disabled":
+            ok, why = platform_seam.login.settings()
+        elif state in ("on", "off"):
+            ok, why = platform_seam.login.set(state == "off")
+        else:
+            ok, why = False, "nothing to switch — the line should have been greyed"
+        nonlocal said_login
+        say("at login" if ok else "AT LOGIN NOT CHANGED", why or "")
+        said_login = platform_seam.login.state()     # said just now, in the click's own words
 
     def offer(now: float, watching: str | None = None) -> list:
         """The menu behind a left click, rebuilt from what the ball mirror says now.
@@ -1205,6 +1241,8 @@ async def run(args) -> int:
             said_menu = said
             say("menu", " · ".join(f"{project}: {words}" for project, words in said)
                         or "nothing waiting")
+        login = platform_seam.login.state()
+        at_login(login)
         return menubar_items(
             ball is not None and ball.connected,
             ball_off=ball is not None and not ball.wanted,
@@ -1218,7 +1256,9 @@ async def run(args) -> int:
             on_disconnect=lambda: ball.set_wanted(False),
             on_mute=mute,
             on_quit=quitting.set,
-            on_silence=silencing.append)
+            on_silence=silencing.append,
+            login=login,
+            on_login=switch_login)
 
     def attended(taken: Taken, how: str) -> None:
         """What happens after the core was told, whichever door told it.

@@ -413,6 +413,97 @@ def menu_rows(make, quiet: bool = False) -> bool:
     return sheet.ok()
 
 
+# The seam's `(state, why)` for each of the four answers `Login.state` gives (spec 02).
+LOGIN_OFF, LOGIN_ON = ("off", None), ("on", None)
+LOGIN_DISABLED = ("disabled", "switched off in System Settings › General › Login Items & "
+                              "Extensions › App Background Activity — switch wobble on there")
+LOGIN_NO_APP = (None, "wobble.app is not in /Applications — build it with "
+                      "tools/build_app.py --install first")
+
+
+def login_part(menu: list) -> list:
+    """The line between the link and the separator over Quit, by position (spec 02)."""
+    return menu[-3:-2] if len(menu) >= 3 and menu[-3] != SEPARATOR else []
+
+
+def login_rows(make, quiet: bool = False) -> bool:
+    """The login line: what a click will do, read from the seam, above Quit."""
+    sheet = Sheet(quiet)
+    if not quiet:
+        print("\n  opening at login — the line says what a click will do (spec 02)")
+    act = lambda: None
+    said = lambda login, **kw: [label for label, _ in login_part(make(True, login=login, **kw))]
+    sheet.row("off: the line offers to open wobble at login",
+              said(LOGIN_OFF), ["Open wobble at login"])
+    sheet.row("on: it offers to stop",
+              said(LOGIN_ON), ["Stop opening wobble at login"])
+    sheet.row("on with a doubt the OS left: still says it is on",
+              said(("on", "macOS could not be asked")), ["Stop opening wobble at login"])
+    # Task 01: switched off in System Settings, the file stays and a rewrite is
+    # still off, so "Stop opening" would be a claim the disk makes and macOS does not.
+    sheet.row("switched off in Settings: says so, offers the pane",
+              said(LOGIN_DISABLED), ["Off in Login Items — open System Settings"])
+    sheet.row("no app to open: greyed, with why's first clause",
+              [(label, h) for label, h in login_part(make(True, login=LOGIN_NO_APP,
+                                                           on_login=act))],
+              [("Cannot open at login: wobble.app is not in /Applications", None)])
+    sheet.row("a state nobody knows: greyed, never shown as on",
+              [(label, h) for label, h in login_part(make(True, login=("maybe", None),
+                                                           on_login=act))],
+              [("Cannot open at login: no reason given", None)])
+    clicked: list = []
+    for login in (LOGIN_OFF, LOGIN_ON, LOGIN_DISABLED):
+        for _, handler in login_part(make(True, login=login,
+                                          on_login=lambda: clicked.append(True))):
+            clicked.append("<nothing to click>") if handler is None else handler()
+    sheet.row("off, on, switched off: each line does something",
+              clicked, [True] * 3)
+    states = [make(True, login=LOGIN_ON), make(False, login=LOGIN_ON),
+              make(False, ball_off=True, login=LOGIN_ON),
+              make(False, have_ball_mirror=False, login=LOGIN_ON)]
+    sheet.row("last line above Quit's separator, any ball state",
+              [m[-3:] for m in states],
+              [[("Stop opening wobble at login", None), SEPARATOR, ("Quit wobble", None)]] * 4)
+    sheet.row("…below the link and mute, never among the waiting",
+              [label for label, _ in switches_part(make(True, login=LOGIN_OFF))],
+              ["Mute the sounds", "Disconnect the ball", "Open wobble at login"])
+    sheet.row("with no state handed in, no line: the menu as before",
+              make(True, login=None), make(True))
+    return sheet.ok()
+
+
+def login_below_the_separator(*a, **kw) -> list:
+    """The line moved under the separator, a thumb-width from Quit."""
+    menu = items(*a, **kw)
+    if kw.get("login") is None:
+        return menu
+    return [*menu[:-3], SEPARATOR, menu[-3], menu[-1]]
+
+
+def login_label_never_changes(*a, **kw) -> list:
+    """One label for on and off — Mute's backwards click, at login."""
+    return [("Open wobble at login", h) if label == "Stop opening wobble at login"
+            else (label, h) for label, h in items(*a, **kw)]
+
+
+def login_trusts_the_file(*a, **kw) -> list:
+    """Switched off in System Settings read as on: the file is there, after all."""
+    if kw.get("login") is not None and kw["login"][0] == "disabled":
+        kw = {**kw, "login": LOGIN_ON}
+    return items(*a, **kw)
+
+
+def login_greyed_still_clicks(*a, **kw) -> list:
+    """The refusal greyed in words but wired to the click all the same."""
+    return [(label, kw.get("on_login") if str(label).startswith("Cannot open at login")
+             else h) for label, h in items(*a, **kw)]
+
+
+def login_line_dropped(*a, **kw) -> list:
+    """No line at all: the switch wired in the daemon and never shown."""
+    return items(*a, **{**kw, "login": None})
+
+
 def _restored() -> tuple:
     """quarry's done from before a restart, then wobble's needs and notebooks's
     done since — notebooks held by B, so the daemon appends it last (task 47)."""
@@ -1027,6 +1118,7 @@ def main() -> int:
     ok &= menu_rows(items)
     ok &= restored_rows(items)
     ok &= silence_rows(items)
+    ok &= login_rows(items)
 
     print("\n  --no-menubar puts nothing in the menu bar at all")
     null.CALLS.clear()
@@ -1140,6 +1232,16 @@ def main() -> int:
          lambda: menu_rows(the_battery_left_out, quiet=True)),
         ("a lost link said only by the line that changes it",
          lambda: menu_rows(the_link_said_only_by_its_action, quiet=True)),
+        ("the login line under the separator, against Quit",
+         lambda: login_rows(login_below_the_separator, quiet=True)),
+        ("one login label for on and off",
+         lambda: login_rows(login_label_never_changes, quiet=True)),
+        ("switched off in System Settings shown as on",
+         lambda: login_rows(login_trusts_the_file, quiet=True)),
+        ("a greyed login refusal that still clicks",
+         lambda: login_rows(login_greyed_still_clicks, quiet=True)),
+        ("no login line at all",
+         lambda: login_rows(login_line_dropped, quiet=True)),
     )
     for label, run in controls:
         survived = run()

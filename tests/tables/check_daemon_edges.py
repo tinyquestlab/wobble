@@ -1251,7 +1251,7 @@ MUTANTS = [
     ("a hold typed read as a press", silence,
      ("hold.set if typed.strip() == \"hold\" else press.set", "press.set")),
     ("no ⌥ row offered", silence,
-     ("            on_silence=silencing.append)", "            on_silence=None)")),
+     ("            on_silence=silencing.append,", "            on_silence=None,")),
     ("the confirmation never played", silence,
      ("        outcome(\"silenced\", how, silenced.project)", "        pass")),
     ("a hold on nothing says nothing", silence,
