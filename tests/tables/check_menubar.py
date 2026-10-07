@@ -47,6 +47,12 @@ battery reaches the drawing only while connected, a link switched off or no
 ball mirror fades it, and the words beside it are the count alone. Its mutants are lines of `src/mirrors/menubar.py`
 replaced one at a time, each of which must turn a row wrong.
 
+And `Settings ›` (spec 03): opening at login is a checkmark in it, no longer a
+line above Quit; a refused permission is a line at the very top, whose click
+opens its pane, and a `⚠` last in the title, drawn ball or not; what was never
+asked or cannot be read is never an alert and never checked; and a change only
+the submenu sees still rebuilds the menu.
+
 Plus the seam rule, mechanically: a mirror may name the seam and may not name an
 OS. CLAUDE.md states it in prose, and prose is what loses to a convenient import
 at 11pm.
@@ -68,9 +74,10 @@ from src.core.ladder import Voice                                      # noqa: E
 from src.core.signals import Event, Kind, Queue                        # noqa: E402
 from src.core.attention import Standing, Status                       # noqa: E402
 from src.mirrors.menubar import (SEPARATOR, Menubar, items, line,      # noqa: E402
-                                 render, status_words)
+                                 login_line, render, status_words)
 from src.platform_seam import null                                     # noqa: E402
-from src.platform_seam.ports import Alternate, BallIcon                # noqa: E402
+from src.platform_seam.ports import (Alternate, BallIcon, Checked,    # noqa: E402
+                                     Submenu)
 
 def _pending() -> tuple:
     """Four sessions in three projects, whose right order is not their alphabetical one.
@@ -421,36 +428,47 @@ LOGIN_NO_APP = (None, "wobble.app is not in /Applications — build it with "
                       "tools/build_app.py --install first")
 
 
+def settings_part(menu: list) -> list:
+    """What `Settings ›` holds, or `[]` with no such line (spec 03)."""
+    return next((h for label, h in menu if isinstance(label, Submenu)), [])
+
+
 def login_part(menu: list) -> list:
-    """The line between the link and the separator over Quit, by position (spec 02)."""
-    return menu[-3:-2] if len(menu) >= 3 and menu[-3] != SEPARATOR else []
+    """The last line of `Settings ›`, where the login switch lives since spec 03."""
+    part = settings_part(menu)
+    return part[-1:] if part and part[-1] != SEPARATOR else []
+
+
+def kinded(lines: list) -> list:
+    """Labels with their kind: a `Checked` line equals its plain words as a `str`."""
+    return [(type(label).__name__, label) for label, _ in lines]
 
 
 def login_rows(make, quiet: bool = False) -> bool:
-    """The login line: what a click will do, read from the seam, above Quit."""
+    """The login switch: a checkmark in `Settings ›`, read from the seam (specs 02, 03)."""
     sheet = Sheet(quiet)
     if not quiet:
-        print("\n  opening at login — the line says what a click will do (spec 02)")
+        print("\n  opening at login — a checkmark in Settings › (specs 02, 03)")
     act = lambda: None
-    said = lambda login, **kw: [label for label, _ in login_part(make(True, login=login, **kw))]
-    sheet.row("off: the line offers to open wobble at login",
-              said(LOGIN_OFF), ["Open wobble at login"])
-    sheet.row("on: it offers to stop",
-              said(LOGIN_ON), ["Stop opening wobble at login"])
-    sheet.row("on with a doubt the OS left: still says it is on",
-              said(("on", "macOS could not be asked")), ["Stop opening wobble at login"])
+    said = lambda login, **kw: kinded(login_part(make(True, login=login, **kw)))
+    sheet.row("off: the line offers to open wobble at login, unchecked",
+              said(LOGIN_OFF), [("str", "Open wobble at login")])
+    sheet.row("on: the same line, checked",
+              said(LOGIN_ON), [("Checked", "Open wobble at login")])
+    sheet.row("on with a doubt the OS left: still checked",
+              said(("on", "macOS could not be asked")), [("Checked", "Open wobble at login")])
     # Task 01: switched off in System Settings, the file stays and a rewrite is
-    # still off, so "Stop opening" would be a claim the disk makes and macOS does not.
+    # still off, so a checkmark would be a claim the disk makes and macOS does not.
     sheet.row("switched off in Settings: says so, offers the pane",
-              said(LOGIN_DISABLED), ["Off in Login Items — open System Settings"])
+              said(LOGIN_DISABLED), [("str", "Off in Login Items — open System Settings")])
     sheet.row("no app to open: greyed, with why's first clause",
               [(label, h) for label, h in login_part(make(True, login=LOGIN_NO_APP,
                                                            on_login=act))],
               [("Cannot open at login: wobble.app is not in /Applications", None)])
     sheet.row("a state nobody knows: greyed, never shown as on",
-              [(label, h) for label, h in login_part(make(True, login=("maybe", None),
-                                                           on_login=act))],
-              [("Cannot open at login: no reason given", None)])
+              [(type(label).__name__, h) for label, h in
+               login_part(make(True, login=("maybe", None), on_login=act))],
+              [("str", None)])
     clicked: list = []
     for login in (LOGIN_OFF, LOGIN_ON, LOGIN_DISABLED):
         for _, handler in login_part(make(True, login=login,
@@ -461,29 +479,37 @@ def login_rows(make, quiet: bool = False) -> bool:
     states = [make(True, login=LOGIN_ON), make(False, login=LOGIN_ON),
               make(False, ball_off=True, login=LOGIN_ON),
               make(False, have_ball_mirror=False, login=LOGIN_ON)]
-    sheet.row("last line above Quit's separator, any ball state",
-              [m[-3:] for m in states],
-              [[("Stop opening wobble at login", None), SEPARATOR, ("Quit wobble", None)]] * 4)
-    sheet.row("…below the link and mute, never among the waiting",
+    sheet.row("Settings › is the line above Quit's separator, any ball state",
+              [kinded(m[-3:]) for m in states],
+              [[("Submenu", "Settings"), ("NoneType", None), ("str", "Quit wobble")]] * 4)
+    sheet.row("…with the login switch alone in it, and nothing else moved",
               [label for label, _ in switches_part(make(True, login=LOGIN_OFF))],
-              ["Mute the sounds", "Disconnect the ball", "Open wobble at login"])
-    sheet.row("with no state handed in, no line: the menu as before",
+              ["Mute the sounds", "Disconnect the ball"])
+    sheet.row("with no state handed in, no Settings ›: the menu as before",
               make(True, login=None), make(True))
     return sheet.ok()
 
 
-def login_below_the_separator(*a, **kw) -> list:
-    """The line moved under the separator, a thumb-width from Quit."""
+def _lines(menu: list, change) -> list:
+    """Every line, a submenu's too, through `change(label, handler)`."""
+    return [(label, _lines(h, change)) if isinstance(label, Submenu) else change(label, h)
+            for label, h in menu]
+
+
+def login_out_of_settings(*a, **kw) -> list:
+    """The switch left above Quit, where spec 02 had it, and not in Settings ›."""
     menu = items(*a, **kw)
     if kw.get("login") is None:
         return menu
-    return [*menu[:-3], SEPARATOR, menu[-3], menu[-1]]
+    switch = login_line(kw["login"], kw.get("on_login"))
+    return [line for line in menu if not isinstance(line[0], Submenu)][:-2] + [
+        switch, SEPARATOR, menu[-1]]
 
 
-def login_label_never_changes(*a, **kw) -> list:
-    """One label for on and off — Mute's backwards click, at login."""
-    return [("Open wobble at login", h) if label == "Stop opening wobble at login"
-            else (label, h) for label, h in items(*a, **kw)]
+def login_never_checked(*a, **kw) -> list:
+    """On drawn as plain words: the same label for on and off, so the click reads backwards."""
+    return _lines(items(*a, **kw), lambda label, h: (
+        str(label) if isinstance(label, Checked) and "at login" in label else label, h))
 
 
 def login_trusts_the_file(*a, **kw) -> list:
@@ -495,13 +521,132 @@ def login_trusts_the_file(*a, **kw) -> list:
 
 def login_greyed_still_clicks(*a, **kw) -> list:
     """The refusal greyed in words but wired to the click all the same."""
-    return [(label, kw.get("on_login") if str(label).startswith("Cannot open at login")
-             else h) for label, h in items(*a, **kw)]
+    return _lines(items(*a, **kw), lambda label, h: (
+        label, kw.get("on_login") if str(label).startswith("Cannot open at login") else h))
 
 
 def login_line_dropped(*a, **kw) -> list:
     """No line at all: the switch wired in the daemon and never shown."""
     return items(*a, **{**kw, "login": None})
+
+
+# The daemon's `{kind: (state, why)}`, in the seam's order (spec 03).
+TERMINAL = "automation:com.apple.Terminal"
+GRANTED = {"bluetooth": ("granted", None), "accessibility": ("granted", None),
+           TERMINAL: ("granted", None)}
+AX_OFF = {**GRANTED, "accessibility": ("refused", "Accessibility is switched off")}
+ALL_OFF = {kind: ("refused", "off") for kind in GRANTED}
+AX_ALERT = "⚠ Accessibility off — B raises no window · Open…"
+
+
+def below_alerts(menu: list) -> list:
+    """The menu with the ⚠ lines and their separator taken off the top."""
+    alerts = 0
+    while alerts < len(menu) and str(menu[alerts][0]).startswith("⚠"):
+        alerts += 1
+    return menu[alerts + 1:] if alerts else menu
+
+
+def permission_rows(make, quiet: bool = False) -> bool:
+    """A refused permission: a line at the top and a ✗ in Settings ›, each to its pane (spec 03)."""
+    sheet = Sheet(quiet)
+    if not quiet:
+        print("\n  a missing permission, said where a person looks (spec 03)")
+    opened: list = []
+    menu = make(True, permissions=AX_OFF, on_permission=opened.append)
+    sheet.row("Accessibility refused: a line at the very top",
+              [label for label, _ in menu[:2]], [AX_ALERT, None])
+    sheet.row("…above what is waiting, which is otherwise unmoved",
+              menu[2:4], make(True)[:2])
+    (menu[0][1] or (lambda: None))()
+    sheet.row("…and its click opens Accessibility's pane", opened, ["accessibility"])
+    sheet.row("all granted: no line at the top",
+              make(True, permissions=GRANTED)[0], ("Nothing waiting", None))
+    sheet.row("several refused: one line each, in the order handed over",
+              [label for label, _ in make(True, permissions=ALL_OFF)[:4]],
+              ["⚠ Bluetooth off — the ball cannot connect · Open…", AX_ALERT,
+               "⚠ Automation · Terminal off — B cannot pick the tab · Open…", None])
+    # Criterion 3: the radio being off is still the link line's, and only there.
+    sheet.row("Bluetooth refused: the link lines are the same as without it",
+              ball_lines(below_alerts(make(False, permissions={"bluetooth": ("refused", "off")}))),
+              ball_lines(make(False)))
+    sheet.row("never asked is not missing: no line at the top",
+              make(True, permissions={"bluetooth": ("not asked", "never")})[0],
+              ("Nothing waiting", None))
+    sheet.row("unreadable is not missing either: no line at the top",
+              make(True, permissions={"accessibility": (None, "gone")})[0],
+              ("Nothing waiting", None))
+
+    if not quiet:
+        print("\n  Settings ›: every permission's state, then the login switch")
+    opened.clear()
+    part = settings_part(make(True, permissions=AX_OFF, on_permission=opened.append,
+                              login=LOGIN_ON, on_login=lambda: None))
+    sheet.row("a header, each permission, a separator, the login switch",
+              kinded(part),
+              [("str", "Permissions"), ("Checked", "Bluetooth — the ball can connect"),
+               ("str", AX_ALERT), ("Checked", "Automation · Terminal — B picks the tab"),
+               ("NoneType", None), ("Checked", "Open wobble at login")])
+    sheet.row("granted lines are to read, and so is the header",
+              [h is None for _, h in part[:4]], [True, True, False, True])
+    if len(part) > 2:
+        (part[2][1] or (lambda: None))()
+    sheet.row("the refused line opens its pane", opened, ["accessibility"])
+    said = lambda permissions: kinded(settings_part(make(True, permissions=permissions)))
+    sheet.row("Accessibility never asked: greyed, says so",
+              said({"accessibility": ("not asked", "never")}),
+              [("str", "Permissions"), ("str", "Accessibility — not asked yet")])
+    sheet.row("Automation never asked, or Terminal not running: not listed",
+              [said({TERMINAL: ("not asked", "never")}), said({TERMINAL: ("not running", "")})],
+              [[], []])
+    # Criterion 7: an unknown state is never shown as ✓.
+    sheet.row("unreadable: greyed, never checked",
+              settings_part(make(True, permissions={"accessibility": (None, "gone")})),
+              [("Permissions", None), ("Accessibility — cannot be read", None)])
+    sheet.row("a state nobody knows reads as unreadable, never checked",
+              said({"bluetooth": ("maybe", None)}),
+              [("str", "Permissions"), ("str", "Bluetooth — cannot be read")])
+    sheet.row("permissions and no login: no separator, no switch",
+              [label for label, _ in settings_part(make(True, permissions=GRANTED))][-1],
+              "Automation · Terminal — B picks the tab")
+    sheet.row("with nothing handed in, no Settings › at all",
+              make(True, permissions={}), make(True))
+    return sheet.ok()
+
+
+def alert_only_in_settings(*a, **kw) -> list:
+    """A refused permission said only in Settings ›: the hidden ✗ the spec ends."""
+    menu = items(*a, **kw)
+    while menu and str(menu[0][0]).startswith("⚠"):
+        menu = menu[1:]
+    return menu[1:] if menu and menu[0] == SEPARATOR else menu
+
+
+def alert_that_opens_nothing(*a, **kw) -> list:
+    """The ⚠ lines drawn, and not wired to their pane."""
+    return _lines(items(*a, **kw), lambda label, h: (label, None if str(label).startswith("⚠")
+                                                     else h))
+
+
+def unreadable_as_granted(*a, **kw) -> list:
+    """What could not be read shown as granted (criterion 7)."""
+    permissions = {kind: ("granted", None) if state not in ("refused", "not asked",
+                                                            "not running") else (state, why)
+                   for kind, (state, why) in (kw.get("permissions") or {}).items()}
+    return items(*a, **{**kw, "permissions": permissions})
+
+
+def never_asked_as_refused(*a, **kw) -> list:
+    """A permission never asked alerted as missing: every new install nagged."""
+    permissions = {kind: ("refused", why) if state == "not asked" else (state, why)
+                   for kind, (state, why) in (kw.get("permissions") or {}).items()}
+    return items(*a, **{**kw, "permissions": permissions})
+
+
+def permissions_in_their_own_order(*a, **kw) -> list:
+    """The alerts sorted by name, not in the seam's worst-loss-first order."""
+    permissions = dict(sorted((kw.get("permissions") or {}).items()))
+    return items(*a, **{**kw, "permissions": permissions})
 
 
 def _restored() -> tuple:
@@ -1054,7 +1199,7 @@ BALL_MUTANTS = [
     ("the dot's sentence dropped",
      ('f"{why} — the menu bar keeps its dot in the words")', "why)")),
     ("the dot kept beside the drawing",
-     ("muted=muted, ball_drawn=self._drew))", "muted=muted))")),
+     ("muted=muted, ball_drawn=self._drew, alert=alert))", "muted=muted, alert=alert))")),
     ("the dot dropped though nothing was drawn",
      ("self._drew, why = platform_seam.status.icon(ball)",
       "why = platform_seam.status.icon(ball)[1]; self._drew = True")),
@@ -1062,7 +1207,8 @@ BALL_MUTANTS = [
     ("a refusal said every time", ("if why != self._cannot_draw:", "if True:")),
     ("the mute never handed to the drawing", ("self._beats, muted,", "self._beats, False,")),
     ("the words kept beside the drawing, as at task 61",
-     ('    if ball_drawn:\n        return f"{pending}" if pending else ""\n'
+     ('    if ball_drawn:\n        return " ".join([*([f"{pending}"] if pending else []), '
+      '*(["⚠"] if alert else [])])\n'
       '    parts = [f"● {pending}" if pending else "○"]\n    if muted:',
       '    parts = ([f"{pending}"] if pending else []) if ball_drawn else [\n'
       '        f"● {pending}" if pending else "○"]\n    if muted and not ball_drawn:')),
@@ -1119,6 +1265,7 @@ def main() -> int:
     ok &= restored_rows(items)
     ok &= silence_rows(items)
     ok &= login_rows(items)
+    ok &= permission_rows(items)
 
     print("\n  --no-menubar puts nothing in the menu bar at all")
     null.CALLS.clear()
@@ -1180,6 +1327,15 @@ def main() -> int:
         ok &= got == "caught"
         print(f"    {label:<52} {'caught' if got == 'caught' else '<-- ' + got}")
 
+    ok &= alert_rows(sys.modules["src.mirrors.menubar"])
+    print("\n  the ⚠ and Settings ›'s mutants — lines of menubar.py, each must break a row")
+    for label, patch in ALERT_MUTANTS:
+        mod = load_menubar(patch)
+        got = "NOT APPLIED" if mod is None else ("caught" if not alert_rows(mod, quiet=True)
+                                                 else "SURVIVED")
+        ok &= got == "caught"
+        print(f"    {label:<52} {'caught' if got == 'caught' else '<-- ' + got}")
+
     print("\n  the seam rule")
     ok &= mirrors_name_no_os()
 
@@ -1232,16 +1388,26 @@ def main() -> int:
          lambda: menu_rows(the_battery_left_out, quiet=True)),
         ("a lost link said only by the line that changes it",
          lambda: menu_rows(the_link_said_only_by_its_action, quiet=True)),
-        ("the login line under the separator, against Quit",
-         lambda: login_rows(login_below_the_separator, quiet=True)),
-        ("one login label for on and off",
-         lambda: login_rows(login_label_never_changes, quiet=True)),
+        ("the login switch left above Quit, out of Settings ›",
+         lambda: login_rows(login_out_of_settings, quiet=True)),
+        ("on drawn without its checkmark",
+         lambda: login_rows(login_never_checked, quiet=True)),
         ("switched off in System Settings shown as on",
          lambda: login_rows(login_trusts_the_file, quiet=True)),
         ("a greyed login refusal that still clicks",
          lambda: login_rows(login_greyed_still_clicks, quiet=True)),
         ("no login line at all",
          lambda: login_rows(login_line_dropped, quiet=True)),
+        ("a refused permission said only in Settings › (spec 03)",
+         lambda: permission_rows(alert_only_in_settings, quiet=True)),
+        ("a ⚠ line that opens nothing",
+         lambda: permission_rows(alert_that_opens_nothing, quiet=True)),
+        ("an unreadable permission shown as granted",
+         lambda: permission_rows(unreadable_as_granted, quiet=True)),
+        ("a permission never asked alerted as missing",
+         lambda: permission_rows(never_asked_as_refused, quiet=True)),
+        ("the alerts in an order of the menu's own",
+         lambda: permission_rows(permissions_in_their_own_order, quiet=True)),
     )
     for label, run in controls:
         survived = run()
@@ -1252,6 +1418,57 @@ def main() -> int:
     print("\n" + ("ALL CASES MATCH the known answer" if ok
                   else "SOMETHING DOES NOT MATCH — the rows above, not this line"))
     return 0 if ok else 1
+
+
+def alert_rows(mod, quiet: bool = False) -> bool:
+    """The `⚠` in the title, and a menu rebuilt for a change inside `Settings ›` (spec 03)."""
+    sheet = Sheet(quiet)
+    say = (lambda _: None) if quiet else print
+    say("\n  a refused permission: a ⚠ in the title, last (spec 03)")
+    null.CALLS.clear()
+    bar = mod.Menubar(on_press=lambda: None)
+    bar.refresh(0, ball_connected=False, alert=True)
+    sheet.row("no drawing: the words end in ⚠", titles()[-1], "○ · no ball · ⚠")
+    bar.refresh(2, ball_connected=True, battery=80, muted=True, alert=True)
+    sheet.row("…after everything else they say", titles()[-1], "● 2 · muted · 80% · ⚠")
+    bar.refresh(0, ball_connected=False)
+    sheet.row("…and it goes when nothing is refused", titles()[-1], "○ · no ball")
+    sheet.row("drawn, nothing waiting: the ⚠ alone beside the ball",
+              mod.render(0, True, ball_drawn=True, alert=True), "⚠")
+    sheet.row("drawn, two waiting: the count, then the ⚠",
+              mod.render(2, True, ball_drawn=True, alert=True), "2 ⚠")
+    sheet.row("drawn, nothing refused: as before",
+              mod.render(2, True, ball_drawn=True), "2")
+
+    say("\n  a change only Settings › sees still rebuilds the menu (spec 03)")
+    null.CALLS.clear()
+    bar = mod.Menubar(on_press=lambda: None)
+    for login in (LOGIN_OFF, LOGIN_OFF, LOGIN_ON):
+        bar.refresh(0, ball_connected=True, menu=mod.items(True, login=login))
+    built = [args[0] for n, args in null.CALLS if n == "Status.menu"]
+    # The seam's null records words only: a checkmark is the same words, so the
+    # second build is the row, not what it lists.
+    sheet.row("a checkmark coming on is a new menu, the same one twice is not",
+              len(built), 2)
+    bar.refresh(0, ball_connected=True, menu=mod.items(True, login=LOGIN_DISABLED))
+    built = [args[0] for n, args in null.CALLS if n == "Status.menu"]
+    sheet.row("…and so are new words inside Settings › alone",
+              built[-1][-3:], [["Settings", ["Off in Login Items — open System Settings"]],
+                               None, "Quit wobble"])
+    return sheet.ok()
+
+
+ALERT_MUTANTS = [
+    ("no ⚠ in the words", ('    if alert:\n        parts.append("⚠")',
+                           '    if False:\n        parts.append("⚠")')),
+    ("no ⚠ beside the drawing", ('*(["⚠"] if alert else [])', "")),
+    ("the menu compared by its words alone",
+     ("return [(label, type(label).__name__, _shape(handler) if isinstance(label, Submenu) "
+      "else None)\n            for label, handler in menu]",
+      "return [label for label, handler in menu]")),
+    ("a submenu's lines never compared",
+     ("_shape(handler) if isinstance(label, Submenu) else None)", "None)")),
+]
 
 
 def _beats_of(cls):

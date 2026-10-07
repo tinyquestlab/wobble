@@ -21,6 +21,7 @@ else, since the drawing says the rest (task 63). When the seam cannot draw it:
     ○ · ball off      there is no link because you switched it off
     ● 2 · 87%         two waiting, the ball has them, and it has 87% left
     ● 2 · muted · 87% the same, with the sound switched off — it only buzzes
+    ○ · no ball · ⚠   a permission is missing, and the menu says which
 
 **The ball beside the words** (task 58). The item is a ball drawn in code,
 never Nintendo's art, and it shows what the ball on the desk shows, in its
@@ -92,6 +93,14 @@ comes back through the same two facts this file already renders.
 
 Quitting lives in that menu too, under a separator, and `items` says why that
 is not the screen growing a feature the ball has not got.
+
+**A missing permission is said where a person looks** (spec 03, principle 7).
+A grant is pinned to the launcher's bytes, so a rebuild drops it, and somebody
+can switch one off in System Settings; either way B stopped raising windows and
+only the log said so. Now a refused permission is a line at the top of the menu,
+a `⚠` at the end of the title, and a ✗ in `Settings ›`, and each opens its pane.
+These are about the app, not signals, so they are principle 2's boundary as
+login is: the ball cannot grant a permission either.
 """
 from __future__ import annotations
 
@@ -101,7 +110,7 @@ from typing import Callable
 
 from .. import platform_seam
 from ..core.attention import Standing, Status
-from ..platform_seam.ports import Alternate, BallIcon
+from ..platform_seam.ports import Alternate, BallIcon, Checked, Submenu
 from ..core.ladder import Voice
 from ..core.signals import Entry
 from ..hooks import short
@@ -109,7 +118,7 @@ from ..hooks import short
 
 def render(pending: int, ball_connected: bool, *,
            ball_off: bool = False, battery: int | None = None,
-           muted: bool = False, ball_drawn: bool = False) -> str:
+           muted: bool = False, ball_drawn: bool = False, alert: bool = False) -> str:
     """The whole title, from the facts it is handed. Pure, so it can be checked
     against a table rather than against a screenshot.
 
@@ -124,9 +133,12 @@ def render(pending: int, ball_connected: bool, *,
     `muted` is shown with a ball and without one, because it silences both
     surfaces — the module docstring says why it is shown at all. A drawn ball
     carries it as a mark (task 61), so the word is only for when there is none.
+
+    `alert` is a permission refused (spec 03): a `⚠` last, drawn ball or not,
+    since nothing in the drawing says it.
     """
     if ball_drawn:
-        return f"{pending}" if pending else ""
+        return " ".join([*([f"{pending}"] if pending else []), *(["⚠"] if alert else [])])
     parts = [f"● {pending}" if pending else "○"]
     if muted:
         parts.append("muted")
@@ -135,6 +147,8 @@ def render(pending: int, ball_connected: bool, *,
             parts.append(f"{battery}%")
     else:
         parts.append("ball off" if ball_off else "no ball")
+    if alert:
+        parts.append("⚠")
     return " · ".join(parts)
 
 
@@ -219,20 +233,75 @@ def _aim(on_attend, session: str):
 def login_line(login: tuple[str | None, str | None], on_login) -> tuple:
     """The line about opening at login, from the seam's `(state, why)` (spec 02).
 
-    Mute's rule: the label says what the click will do. Switched off in System
-    Settings, the click opens it there, because only the person can lift that
-    switch and wobble never works round it (task 01). Anything else — no app
-    to open, no platform, a state this file does not know — is greyed with the
-    first clause of why, and is never shown as on.
+    A switch with the OS's own checkmark, in `Settings ›` (spec 03): checked
+    while on, and the click flips it. Switched off in System Settings, the
+    click opens it there, because only the person can lift that switch and
+    wobble never works round it (task 01). Anything else — no app to open, no
+    platform, a state this file does not know — is greyed with the first
+    clause of why, and is never shown as on.
     """
     state, why = login
     if state == "off":
         return "Open wobble at login", on_login
     if state == "on":
-        return "Stop opening wobble at login", on_login
+        return Checked("Open wobble at login"), on_login
     if state == "disabled":
         return "Off in Login Items — open System Settings", on_login
     return f"Cannot open at login: {(why or 'no reason given').split(' — ')[0]}", None
+
+
+# Each permission in the menu's words (spec 03): its name, what works with it,
+# and what stops without it. Automation is one per app, named from the kind.
+PERMISSION_WORDS = {
+    "bluetooth": ("Bluetooth", "the ball can connect", "the ball cannot connect"),
+    "accessibility": ("Accessibility", "B raises the window", "B raises no window"),
+    "automation": ("Automation · {app}", "B picks the tab", "B cannot pick the tab"),
+}
+
+
+def _permission_words(kind: str) -> tuple[str, str, str]:
+    family, _, bundle = kind.partition(":")
+    name, works, stops = PERMISSION_WORDS.get(family, (kind, "granted", "refused"))
+    return name.format(app=bundle.rsplit(".", 1)[-1]), works, stops
+
+
+def permission_alert(kind: str, on_permission) -> tuple:
+    """The line for a refused permission: what stops, and a click to its pane (spec 03)."""
+    name, _works, stops = _permission_words(kind)
+    return f"⚠ {name} off — {stops} · Open…", _aim(on_permission, kind)
+
+
+def settings_menu(permissions: dict[str, tuple[str | None, str | None]],
+                  login: tuple[str | None, str | None] | None, on_permission=None,
+                  on_login=None) -> list:
+    """`Settings ›`: every permission's state, then the login switch (spec 03).
+
+    A granted one is a checked line to read, and a refused one is the alert's
+    line, a click to its pane. Never asked is not missing, so it is a greyed
+    "not asked yet", and an app wobble never asked to automate is not listed:
+    a line for every app on the Mac would nag about ones never used. One that
+    could not be read is greyed and never checked (criterion 7); the log says
+    why.
+    """
+    lines: list = []
+    for kind, (state, _why) in permissions.items():
+        name, works, _stops = _permission_words(kind)
+        automation = kind.startswith("automation:")
+        if state == "granted":
+            lines.append((Checked(f"{name} — {works}"), None))
+        elif state == "refused":
+            lines.append(permission_alert(kind, on_permission))
+        elif state in ("not asked", "not running"):
+            # "Not running" with no answer kept means none was ever had.
+            if not automation:
+                lines.append((f"{name} — not asked yet", None))
+        else:
+            lines.append((f"{name} — cannot be read", None))
+    if lines:
+        lines.insert(0, ("Permissions", None))
+    if login is not None:
+        lines += [*([SEPARATOR] if lines else []), login_line(login, on_login)]
+    return lines
 
 
 def items(ball_connected: bool, *, ball_off: bool = False,
@@ -240,7 +309,9 @@ def items(ball_connected: bool, *, ball_off: bool = False,
           pending: tuple[Entry, ...] = (),
           standing: dict[str, Standing] | None = None, muted: bool = False, on_attend=None, on_connect=None,
           on_disconnect=None, on_mute=None, on_quit=None, on_silence=None,
-          login: tuple[str | None, str | None] | None = None, on_login=None) -> list:
+          login: tuple[str | None, str | None] | None = None, on_login=None,
+          permissions: dict[str, tuple[str | None, str | None]] | None = None,
+          on_permission=None) -> list:
     """What the menu offers, as `(label, handler)` pairs.
 
     A `None` handler is a line that is only there to be read, and there are three
@@ -306,13 +377,20 @@ def items(ball_connected: bool, *, ball_off: bool = False,
     and shows only while ⌥ is down. A session already silenced has none —
     typing in it is what lifts it, and a row that did nothing would be a lie.
 
-    **Opening at login is the last line above Quit** (spec 02), when `login`
-    is handed in — the seam's `(state, why)`, read by the daemon on every
-    refresh, so a file removed by hand is never shown as still on. It is
+    **Opening at login is in `Settings ›`** (spec 02, moved there by spec 03),
+    when `login` is handed in — the seam's `(state, why)`, read by the daemon on
+    every refresh, so a file removed by hand is never shown as still on. It is
     principle 2's boundary for the same reason Quit is: how the process gets
     started is not a signal, a state or a queue, and the ball cannot start the
-    daemon either. Above the separator, because choosing the opposite line
-    undoes it, as with mute and the link; see `login_line` for its words.
+    daemon either; see `login_line` for its words.
+
+    **A refused permission is a line at the very top** (spec 03), above what is
+    waiting, under a separator of its own, and its state is in `Settings ›`
+    as well — `settings_menu` says why each one reads as it does. The top is
+    what gets seen: a ✗ only in a submenu is the silence the spec ends.
+    `permissions` is the daemon's `{kind: (state, why)}`, in the seam's order,
+    worst loss first. `Settings ›` is above Quit, and only when there is
+    something to put in it.
 
     **Every line, separators included, holds its place in this list.** The seam
     tags each menu item with its index here, so a separator that did not take a
@@ -350,9 +428,20 @@ def items(ball_connected: bool, *, ball_off: bool = False,
             rows[entry.quiet].append((Alternate(f"Silence {name}"),
                                       _aim(on_silence, entry.session)))
     waiting = rows[False] + ([SEPARATOR] if rows[False] and rows[True] else []) + rows[True]
-    return [*(waiting or [("Nothing waiting", None)]), SEPARATOR,
-            *mute, *link, *([login_line(login, on_login)] if login is not None else []),
+    permissions = permissions or {}
+    alerts = [permission_alert(kind, on_permission)
+              for kind, (state, _why) in permissions.items() if state == "refused"]
+    settings = settings_menu(permissions, login, on_permission, on_login)
+    return [*alerts, *([SEPARATOR] if alerts else []),
+            *(waiting or [("Nothing waiting", None)]), SEPARATOR, *mute, *link,
+            *([SEPARATOR, (Submenu("Settings"), settings)] if settings else []),
             SEPARATOR, ("Quit wobble", on_quit)]
+
+
+def _shape(menu: list) -> list:
+    """A menu's words with what draws them differently: the label's kind, and a submenu's own."""
+    return [(label, type(label).__name__, _shape(handler) if isinstance(label, Submenu) else None)
+            for label, handler in menu]
 
 
 class Menubar:
@@ -391,13 +480,14 @@ class Menubar:
                 ball_off: bool = False, battery: int | None = None,
                 muted: bool = False, have_ball_mirror: bool = True,
                 menu: list | None = None,
-                showing: Voice | None = None) -> str | None:
+                showing: Voice | None = None, alert: bool = False) -> str | None:
         """The title, the drawn ball and the menu, from what the core says now.
 
         `showing` is the voice whose light the ball should hold — the same one
         the ball mirror is handed — or `None` for dark. The battery reaches the
         drawing only while connected, and a link switched off, or none in this
-        run, fades it (task 63). Returns why the ball
+        run, fades it (task 63). `alert` puts the `⚠` in the title (spec 03).
+        Returns why the ball
         could not be drawn as it should be, once, when that first becomes true
         or changes, as a sentence to say.
         """
@@ -430,13 +520,14 @@ class Menubar:
                         f"{why} — the menu bar keeps its dot in the words")
         platform_seam.status.show(
             render(pending, ball_connected, ball_off=ball_off, battery=battery,
-                   muted=muted, ball_drawn=self._drew))
+                   muted=muted, ball_drawn=self._drew, alert=alert))
         # Only when the words change. `refresh` runs four times a second and
         # rebuilding an NSMenu at that rate would be a new menu under whatever
         # is currently open — the labels are the cheapest honest way to ask
-        # whether anything actually moved.
+        # whether anything actually moved. With their kind and a submenu's
+        # own (spec 03): a checkmark coming off is the same words.
         if menu is not None:
-            words = [label for label, _ in menu]
+            words = _shape(menu)
             if words != self._offered:
                 self._offered = words
                 platform_seam.status.menu(menu)
