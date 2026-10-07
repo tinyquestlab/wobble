@@ -91,10 +91,11 @@ Built in spec 01 as task 50, after the constitution's amendment of 2026-09-29 (a
 `/Applications/wobble.app` from the repo: a small launcher of its own, so macOS files Bluetooth and
 Accessibility under wobble, and a start script in the repo, so a `git pull` or a new Python keeps
 the grant. It asks for Accessibility once, on first launch, through the system's own prompt: task
-48 measured that the front window's title cannot be read without it. What is left:
+48 measured that the front window's title cannot be read without it. Opening at login is built
+(spec 02, `specs/02-open-at-login/`): a LaunchAgent that calls `open`, switched from the menu, since
+`SMAppService` registers only the calling bundle and would have meant new launcher bytes. What is
+left:
 
-- starting at login through `SMAppService`, which macOS refuses outside `/Applications` (the app
-  now lives there). A LaunchAgent pointing at the bundle is the other road;
 - raising windows through Launch Services (`NSWorkspace.openApplication`), which needs no
   permission, so Accessibility might not be needed at all;
 - saying a missing permission somewhere a person looks: with no terminal, the daemon's words reach

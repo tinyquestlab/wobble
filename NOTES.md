@@ -31,6 +31,12 @@ that spec's `learnings.md`; this is the short, still-true version. Sorted from s
   9 beats (3 heard)`), and `var/logs/signals.tsv` keeps one row per end past the 14 days — no
   session, project or title. A day's summary is a group-by over it, so it survives a daemon that
   was down at midnight.
+- 2026-10-07 (spec 02): wobble.app opens at login through a LaunchAgent that calls `open
+  /Applications/wobble.app`, switched from the menu, off by default. Not SMAppService: it registers
+  only the calling bundle, which would mean new launcher bytes and every grant asked again.
+- 2026-10-07 (spec 02, task 05): no paid Apple Developer account is needed. The app is built on
+  each Mac and never downloaded, so it is never quarantined and Gatekeeper never assesses it.
+  Options, if that ever changes: `docs/no-developer-account-2026-10-07.md`.
 
 ## Learnings
 
@@ -90,3 +96,10 @@ that spec's `learnings.md`; this is the short, still-true version. Sorted from s
 - 2026-10-06 (spec 01, task 88): a quiet row made live by a new event can restart its ladder, and
   the greet keys on (kind, at), so a re-queued done can be greeted again. The log numbers each beat
   rather than claiming either way.
+- 2026-10-07 (spec 02, task 01): BTM's verdict on a LaunchAgent is readable without root
+  (`SMAppService.statusForLegacyURL_`), and reads `notFound` for ~2 s after the file is written.
+  That counts as on, not as a refusal.
+- 2026-10-07 (spec 02, task 01): switched off in System Settings, the agent's file stays and a
+  rewrite stays off. Only the person lifts it there; wobble sends them to the pane.
+- 2026-10-07 (spec 02, task 03): `check_daemon_edges.py`'s mutants quote `daemon.py` lines whole,
+  so a trailing comma stales one. Grep `tests/tables/` before editing a daemon line.

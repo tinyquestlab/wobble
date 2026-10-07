@@ -44,7 +44,7 @@ cd wobble
 
 `install.sh` does four things, and you can run it again at any time:
 
-1. Creates a Python environment in `venv/` and installs four libraries into it (`requirements.txt`).
+1. Creates a Python environment in `venv/` and installs five libraries into it (`requirements.txt`).
 2. Downloads Pikachu's cry and converts it into the ball's format (`tools/fetch_cry.py`).
 3. Shows the Claude Code hooks it wants to add to `~/.claude/settings.json`, and asks before
    writing them. A hook is how Claude Code tells wobble that a session finished or is waiting.
@@ -72,6 +72,12 @@ venv/bin/python3 tools/build_app.py --install     # creates /Applications/wobble
 
 This needs Apple's command line tools (`xcode-select --install`). The app runs the code in this
 folder, so do not move the folder afterwards, or build the app again if you do.
+
+**Open it at login.** Click the menu bar ball and choose **Open wobble at login**. macOS shows a
+*Background Items Added* notification: that is expected, and wobble is listed in System Settings
+under **General › Login Items & Extensions › App Background Activity**. Choose **Stop opening
+wobble at login** to undo it. If you switch wobble off in that list, the menu says **Off in Login
+Items — open System Settings**, and only that switch turns it back on.
 
 **Run one wobble at a time.** A second one refuses to start while the first is running. Quit the
 app before starting one from a terminal, and the other way round.
@@ -158,7 +164,7 @@ beside it is how many sessions are waiting.
 
 Click it for the menu: every waiting session (click one to go to it; hold **⌥** to silence it
 instead), **Mute the sounds** (the ball still buzzes and lights), connect or disconnect the ball,
-and **Quit wobble**.
+whether it opens at login, and **Quit wobble**.
 
 ## Running with no ball
 
@@ -193,6 +199,7 @@ contain no audio from the game.
 
 ```bash
 venv/bin/python3 tools/install_hooks.py --uninstall   # takes wobble's hooks back out
+rm -f ~/Library/LaunchAgents/local.wobble.login.plist  # if it opened at login
 rm -rf /Applications/wobble.app                       # if you built the app
 ```
 
@@ -209,6 +216,7 @@ the yellow light wobble sent it until a Switch writes its own.
 | **The ball never connects** | press its top button while wobble is running. Check that no Switch and no other wobble holds it, and that Bluetooth is allowed |
 | **The ball buzzes but plays no cry** | run `venv/bin/python3 tools/fetch_cry.py`. It needs ffmpeg |
 | **The button quiets the ball but no window comes forward** | allow Accessibility for the app wobble runs in, then restart wobble |
+| **wobble does not start at login** | the menu's line says why: **Open wobble at login** means it is off; **Off in Login Items** means switch wobble on in System Settings › General › Login Items & Extensions › App Background Activity |
 | **"another wobble daemon is already running"** | quit the app, or the other terminal, first |
 | **The ball's light stays on after wobble quits** | normal: a light the ball holds is only turned off by a command. Start wobble and quit it from the menu |
 

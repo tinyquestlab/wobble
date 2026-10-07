@@ -667,6 +667,21 @@ venv/bin/python3 -m src.daemon          # the real thing
     a needs still beating after a quick yes, or back after a denial; a prompt never shown that
     beats on (the risk task 72 accepted — write down what asked).
 
+30. **wobble opens at login** (spec 02). With `/Applications/wobble.app` built and running:
+    - **Switch it on, log out and in.** The menu's line reads *Stop opening wobble at login*, and
+      after the login the app is running with its grants: B raises a window and the ball
+      connects, with no prompt. `var/app.out` says `at login  on`.
+    - **Switch it off, log out and in.** wobble does not start.
+    - **Switch it off in System Settings** › General › Login Items & Extensions › App Background
+      Activity, with it on in the menu. The line reads *Off in Login Items — open System
+      Settings*, and clicking it opens that pane; switching wobble on there brings the line back
+      to *Stop opening*.
+    - **Quit it after a login.** It stays quit until the next login.
+
+    **What would be a defect:** a prompt for Bluetooth or Accessibility after a login; the line
+    saying *Stop opening* while System Settings has it off; a click that changes nothing and says
+    nothing; wobble coming back after a Quit.
+
 ### When your own eye is the instrument, point a camera at it
 
 Steps 1 and 2 are about light and about time, and both are things a person watching is bad at:
