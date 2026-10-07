@@ -1,8 +1,13 @@
 #!/usr/bin/env python3
-"""Fetch Pikachu's cry and convert it into the format the ball plays.
+"""Fetch a partner's cry and convert it into the format the ball plays.
 
     venv/bin/python3 tools/fetch_cry.py                 # Pikachu, into assets/cries/
+    venv/bin/python3 tools/fetch_cry.py --voice eevee   # Eevee, into assets/cries/eevee.wav
     venv/bin/python3 tools/fetch_cry.py --force         # replace a cry already there
+
+The two voices are the partners, whose sounds the new ball holds built in
+(PROTOCOL.md §6.5); their cry is the upload `129` falls back to (spec 04).
+`--dex` fetches any other Pokémon, into a file named by its number.
 
 **The cry is never in this repository** (NOTICE.md). It is downloaded from
 PokeAPI's cries collection onto the machine doing the install and written to
@@ -37,8 +42,9 @@ sys.path.insert(0, str(ROOT))
 from src.ball import resource                 # noqa: E402
 
 SOURCE = "https://raw.githubusercontent.com/PokeAPI/cries/main/cries/pokemon/latest/{dex}.ogg"
-PIKACHU = 25
-OUT = ROOT / "assets" / "cries" / "pikachu.wav"
+CRIES = ROOT / "assets" / "cries"
+# The voices wobble speaks with, by National Dex number (spec 04).
+VOICES = {"pikachu": 25, "eevee": 133}
 
 # The ball's own numbers, from a cry the Switch sent it (PROTOCOL.md §8.1).
 CODEC_MS_ADPCM = 2
@@ -95,18 +101,28 @@ def problem(wav: bytes) -> str | None:
     return None
 
 
+def target(voice: str, dex: int | None, out: Path | None) -> tuple[int, Path]:
+    """Which cry to fetch and where it goes: a voice by its name, any other dex by its number."""
+    if dex is None:
+        return VOICES[voice], out or CRIES / f"{voice}.wav"
+    return dex, out or CRIES / f"{dex}.wav"
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--dex", type=int, default=PIKACHU,
-                    help="which Pokémon's cry, by National Dex number (default: 25, Pikachu)")
-    ap.add_argument("--out", type=Path, default=OUT,
-                    help=f"where to write it (default: {OUT.relative_to(ROOT)})")
+    ap.add_argument("--voice", choices=sorted(VOICES), default="pikachu",
+                    help="which partner's cry, into assets/cries/<voice>.wav (default: pikachu)")
+    ap.add_argument("--dex", type=int,
+                    help="any other Pokémon's cry, by National Dex number, into "
+                         "assets/cries/<dex>.wav; --voice is then ignored")
+    ap.add_argument("--out", type=Path, help="where to write it, instead")
     ap.add_argument("--force", action="store_true", help="replace a cry already there")
     args = ap.parse_args()
+    dex, out = target(args.voice, args.dex, args.out)
 
-    if args.out.exists() and not args.force:
-        print(f"fetch_cry: {args.out} is already there — kept. --force replaces it.")
+    if out.exists() and not args.force:
+        print(f"fetch_cry: {out} is already there — kept. --force replaces it.")
         return 0
     ffmpeg = shutil.which("ffmpeg")
     if not ffmpeg:
@@ -115,14 +131,14 @@ def main() -> int:
 
     with tempfile.TemporaryDirectory() as tmp:
         work = Path(tmp)
-        source = download(args.dex, work)
+        source = download(dex, work)
         wav = convert(source, ffmpeg, work)
     why = problem(wav)
     if why:
         sys.exit(f"fetch_cry: the converted cry would not play on the ball — {why}")
-    args.out.parent.mkdir(parents=True, exist_ok=True)
-    args.out.write_bytes(wav)
-    print(f"fetch_cry: {args.out} — {len(wav)} bytes, MS ADPCM 16 kHz mono, ready for the ball")
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_bytes(wav)
+    print(f"fetch_cry: {out} — {len(wav)} bytes, MS ADPCM 16 kHz mono, ready for the ball")
     return 0
 
 

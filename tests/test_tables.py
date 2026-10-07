@@ -26,6 +26,7 @@ TABLES = [
     pytest.param("ball_worker", 106, marks=slow),
     ("menubar", 212),
     ("own_sounds", 18),
+    ("fetch_cry", 21),
     ("seam", 65),
     pytest.param("raise", 63 if sys.platform == "darwin" else 60, marks=slow),   # 3 real-seam legs
     ("log", 34),

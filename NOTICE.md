@@ -16,10 +16,11 @@ comes down. No argument.
 
 ## No Nintendo asset is in this repository
 
-- **The cry.** The ball can play a sound you upload to it. wobble uploads Pikachu's cry, and that
-  cry is not here: `tools/fetch_cry.py` downloads it from [PokeAPI](https://pokeapi.co/)'s
-  [cries](https://github.com/PokeAPI/cries) collection onto the machine doing the install,
-  converts it to the ball's format, and keeps it in `assets/cries/`, which git ignores. The audio
+- **The cries.** The ball can play a sound you upload to it. wobble uploads Pikachu's cry, or
+  Eevee's when that is the voice chosen, and neither cry is here: `tools/fetch_cry.py` downloads
+  each from [PokeAPI](https://pokeapi.co/)'s [cries](https://github.com/PokeAPI/cries)
+  collection onto the machine doing the install, converts it to the ball's format, and keeps it
+  in `assets/cries/`, which git ignores. The audio
   belongs to its rights holders; it never leaves your machine.
 - **The ball's built-in sounds and lights** are the ball's own. wobble sends a number and the ball
   plays what its firmware already holds; nothing is copied from it.
