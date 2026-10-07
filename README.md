@@ -13,8 +13,8 @@ button and the window that was waiting comes to the front.
 No ball? It still works: the menu bar shows what is waiting and the Mac makes the sounds.
 
 <p align="center">
-  <img src="docs/menubar-menu-2026-10-02.png" width="315"
-       alt="wobble in the menu bar: the ball with 1 beside it, and its menu open on a finished session">
+  <img src="docs/menubar-settings-2026-10-07.png" width="513"
+       alt="wobble in the menu bar: the ball with 1 beside it, its menu open on two finished sessions, and Settings showing each permission allowed and wobble opening at login">
 </p>
 
 > **Unofficial fan project.** Not affiliated with, endorsed by or connected to Nintendo,
@@ -113,6 +113,11 @@ has a ⚠ beside it. Click the line and System Settings opens at the right pane.
 themselves once it is allowed again. **Settings ›** in the menu lists every permission's state,
 including Automation for Terminal, which wobble uses to pick a session's tab.
 
+<p align="center">
+  <img src="docs/menubar-permission-off-2026-10-07.png" width="706"
+       alt="Accessibility switched off: a ⚠ beside the menu bar ball, a ⚠ Accessibility off line at the top of the menu, and the same line in Settings">
+</p>
+
 ## What it tells you
 
 | What happened | On the ball | On the Mac, with no ball |
@@ -167,6 +172,7 @@ beside it is how many sessions are waiting.
 | <img src="docs/menubar-done-2026-10-02.png" width="37" alt="the ball with a yellow centre and 1 beside it"> | a session finished: the centre is lit yellow, like the real ball's ring |
 | <img src="docs/menubar-quiet-2026-10-02.png" width="38" alt="the ball with a dark centre and 1 beside it"> | the same session while you are looking at its window: still counted, but quiet and dark |
 | <img src="docs/menubar-silenced-2026-10-02.png" width="28" alt="the ball with a blue centre and no number"> | a session you silenced: the centre is blue, and it is no longer counted |
+| <img src="docs/menubar-alert-2026-10-07.png" width="44" alt="the ball with a ⚠ beside it"> | a permission is switched off: the menu's first line says which, and opens its pane |
 
 Click it for the menu: a ⚠ line for each permission switched off, every waiting session (click
 one to go to it; hold **⌥** to silence it instead), **Mute the sounds** (the ball still buzzes and

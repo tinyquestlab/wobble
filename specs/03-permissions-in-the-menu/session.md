@@ -1,10 +1,9 @@
 # Session — 03-permissions-in-the-menu
 
-## Status: done · 2026-10-07 · all 7 tasks built; Part B step 31 waits for the desk
+## Status: done · 2026-10-07 · all 7 tasks built; Part B step 31 passed for Accessibility
 
 ## Next
-By hand: `docs/DESK-CHECKS.md` Part B step 31 in wobble.app (revoke and regrant Accessibility),
-and spec 02's step 30 at the next logout.
+By hand: step 31's Bluetooth leg, if wanted, and spec 02's step 30 at the next logout.
 
 **Source branch:** main · **Working branch:** main
 **Repo(s):** wobble · **PR:** none, solo repo
@@ -22,6 +21,8 @@ None. The menu's shape was approved from `var/drawings/spec03-menu.html`.
 - 2026-10-07: tasks 02–05 built: the seam's submenu and checkmark, the `Permissions` port, the menu
   (alerts, ⚠, `Settings ›`, login moved in), the daemon reading every 2 s.
 - 2026-10-07: tasks 06–07: README, ROADMAP, DESK-CHECKS step 31; learnings sorted into NOTES.md.
+- 2026-10-07: Part B step 31 in wobble.app: revoked 17:08:19, pane opened 17:08:41, granted
+  17:08:47, all said once; focus read again with no restart.
 
 ## Inputs ingested
 None.
