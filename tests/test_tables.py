@@ -52,6 +52,6 @@ def test_watching(run_table):
 @slow
 def test_daemon_edges(run_table):
     """Its scenarios and its seventy mutants, in five slices side by side (task 79)."""
-    run_table("daemon_edges", 221, parts=[["--part", "scenarios"]]
+    run_table("daemon_edges", 242, parts=[["--part", "scenarios"]]
               + [["--part", f"mutants:{i}/4"] for i in range(4)],
               timeout=900)   # ~385 s here; a CI runner is slower

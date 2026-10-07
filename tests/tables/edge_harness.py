@@ -24,6 +24,11 @@ the check can move the world while the daemon runs:
     steal_after  the same, as a VS Code link's step ends
     titled       appended by process.title: "<pid>\\t<text>" per call
     ball         present: a fake ball mirror; its text is "letgo" or "stuck"
+    perms        {"<kind>": [state, why]}: what Permissions reads, in that order;
+                 none is no permission at all, as on the null seam (spec 03)
+    permission   a kind: its menu line clicked; the pane is printed FAKEPANE
+
+Every title the menu bar is handed is printed FAKETITLE, once per change.
 
 Nothing here ever touches Claude Code's folder: the registry and the
 transcripts are both replaced. `WOBBLE_MUTANT` names one rule to break, and `WOBBLE_PATCH`
@@ -162,7 +167,41 @@ class Idle:
         return float(got or 0), None
 
 
+class Permissions:
+    """`BOX/perms`, read afresh on every call (spec 03)."""
+
+    def _perms(self) -> dict:
+        try:
+            return json.loads(_read("perms", "{}"))
+        except ValueError:
+            return {}
+
+    def kinds(self):
+        return tuple(self._perms())
+
+    def state(self, kind):
+        state, why = self._perms().get(kind, [None, f"there is no permission called {kind!r}"])
+        return state, why
+
+    def settings(self, kind):
+        print(f"FAKEPANE {kind}", flush=True)
+        return True, f"scripted: {kind}'s pane opened"
+
+
+_titles = [None]
+_show = platform_seam.status.show
+
+
+def _show_said(text):
+    if text != _titles[0]:
+        _titles[0] = text
+        print(f"FAKETITLE {text}", flush=True)
+    return _show(text)
+
+
 platform_seam.process = Process()
+platform_seam.permissions = Permissions()
+platform_seam.status.show = _show_said
 platform_seam.frontmost = Front()
 platform_seam.focus = Focus()
 platform_seam.idle = Idle()
@@ -203,6 +242,7 @@ daemon.ALIVE_EVERY_S = 0.3
 daemon.APPROVED_EVERY_S = 0.2
 daemon.TABS_EVERY_S = 0.2
 daemon.QUIT_GRACE_S = 0.6
+daemon.PERMISSIONS_EVERY_S = 0.2
 
 if os.environ.get("WOBBLE_CONFIG"):
     from src.core import ladder
@@ -211,17 +251,20 @@ if os.environ.get("WOBBLE_CONFIG"):
 # A pending-list line, clicked where a real click lands: inside `pump`.
 _attend = []
 _silence = []
+_permission = []
 _items = daemon.menubar_items
 
 
 def _capture(*args, **kwargs):
     _attend[:] = [kwargs["on_attend"]]
     _silence[:] = [kwargs["on_silence"]] if kwargs.get("on_silence") else []
+    _permission[:] = [kwargs["on_permission"]] if kwargs.get("on_permission") else []
     return _items(*args, **kwargs)
 
 
 def _pump():
-    for name, handler in (("aim", _attend), ("silence", _silence)):
+    for name, handler in (("aim", _attend), ("silence", _silence),
+                          ("permission", _permission)):
         box = BOX / name
         if box.exists() and handler:
             session = box.read_text().strip()

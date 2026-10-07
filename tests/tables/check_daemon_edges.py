@@ -25,7 +25,10 @@ task 68's silence, by B held (a stdin line `hold`) and by the menu's ⌥ row
 (`BOX/silence`), ended by a prompt or an answer and by nothing else; and task
 86's life of a signal, its wait and its beats said on the line that ends it, and
 task 87's left and back at the keys, and task 88's re-queue said and each beat
-numbered, and task 89's row per ended signal in the sandbox's `logs/signals.tsv`.
+numbered, and task 89's row per ended signal in the sandbox's `logs/signals.tsv`;
+and spec 03's permissions, each said once per change, a `⚠` in the title while
+one is refused, Terminal closed leaving its refusal standing, and a line's click
+opening its pane, with what is granted scripted (`BOX/perms`).
 
 Every daemon is the real `src.daemon` run by `tests/tables/edge_harness.py`, on a
 sandbox events file written by the real `tools/hook_event.sh`
@@ -1006,6 +1009,78 @@ def silence(patch=None):
     return rows
 
 
+AX_OFF = "Accessibility is switched off in Privacy & Security: B raises no window"
+
+
+def permissions(patch=None):
+    """Spec 03: each permission said once per change, a ⚠ while one is refused, a click to its pane."""
+    box = Sandbox()
+    world = World(box)
+
+    def perms(bluetooth="refused", accessibility="refused", terminal="granted") -> None:
+        world.set("perms", json.dumps({
+            "bluetooth": [bluetooth, "Bluetooth is switched off"],
+            "accessibility": [accessibility, AX_OFF if accessibility == "refused" else None],
+            "automation:" + TERMINAL: [terminal, {"refused": "Terminal refused",
+                                                  "not running": "Terminal is not running"}
+                                       .get(terminal)]}))
+
+    def title() -> str:
+        shown = [line[len("FAKETITLE "):] for line in list(d.lines)
+                 if line.startswith("FAKETITLE ")]
+        return shown[-1] if shown else "<no title>"
+
+    def settle() -> None:
+        time.sleep(1.0)                              # five of its reads (0.2 s)
+
+    perms()
+    d = Daemon(box, "--no-ball", patch=patch)
+    rows = []
+    rows.append(("Accessibility refused: said, with what stops",
+                 d.wait("PERMISSION OFF", AX_OFF), True))
+    rows.append(("Terminal's automation granted: said",
+                 d.wait("permission", f"automation:{TERMINAL} granted"), True))
+    settle()
+    rows.append(("…each once, however many reads",
+                 (len(d.said("PERMISSION OFF")), len(d.said("permission", "granted"))), (1, 1)))
+    rows.append(("a --no-ball run: Bluetooth is never read, so never said",
+                 [line for line in d.lines if "Bluetooth" in line or "bluetooth" in line], []))
+    rows.append(("the title ends in ⚠", title().endswith(" · ⚠"), True))
+
+    world.set("permission", "accessibility")
+    rows.append(("its line clicked: the pane opened, and said",
+                 d.wait("permission", "scripted: accessibility's pane opened")
+                 and "FAKEPANE accessibility" in d.lines, True))
+
+    perms(accessibility="granted")
+    rows.append(("granted again: said", d.wait("permission", "accessibility granted"), True))
+    settle()
+    rows.append(("…and the ⚠ goes by itself", title().endswith("⚠"), False))
+
+    perms(accessibility="granted", terminal="refused")
+    rows.append(("Terminal refused: said", d.wait("PERMISSION OFF", "Terminal refused"), True))
+    perms(accessibility="granted", terminal="not running")
+    settle()
+    rows.append(("Terminal closed: nothing said, the refusal stands",
+                 (d.said("permission", "not running"), title().endswith(" · ⚠")), ([], True)))
+
+    perms(accessibility=None)
+    rows.append(("unreadable: said in capitals, never as granted",
+                 d.wait("CANNOT SEE PERMISSION"), True))
+    rows.append(("permissions: quits clean", d.stop(), 0))
+
+    # With a ball mirror, the radio is the ball's link: a refusal is said.
+    box = Sandbox()
+    world = World(box)
+    world.set("ball", "")
+    perms(accessibility="granted")
+    d = Daemon(box, patch=patch)
+    rows.append(("with a ball: Bluetooth refused is said",
+                 d.wait("PERMISSION OFF", "Bluetooth is switched off"), True))
+    rows.append(("with a ball: quits clean", d.stop(), 0))
+    return rows
+
+
 def interrupted(patch=None):
     """main()'s last door: a KeyboardInterrupt before the handlers are up."""
     out = subprocess.run([PY, HARNESS, "--no-ball"], capture_output=True, text=True,
@@ -1100,7 +1175,8 @@ SCENARIOS = [("restart", restore), ("live loop", live), ("Terminal", terminal),
              ("the lock", locks), ("the ball on quit", ball), ("a catch", catch),
              ("the cries", cries), ("the moods", moods), ("an approved Bash", approved),
              ("alternating B", alternating), ("a glance", glance), ("the silence", silence),
-             ("a signal's life", lives), ("KeyboardInterrupt", interrupted)]
+             ("a signal's life", lives), ("the permissions", permissions),
+             ("KeyboardInterrupt", interrupted)]
 
 # One line of src/daemon.py each; the scenario that must catch it.
 MUTANTS = [
@@ -1276,6 +1352,22 @@ MUTANTS = [
     ("an end not kept", lives,
      ("why = log.ended(entry.kind.value, now - had.start, had.beats, had.heard, how)",
       "why = None")),
+    ("a permission said every read", permissions,
+     ("        if permissions.get(kind) == read:\n            return\n",
+      "        if False:\n            return\n")),
+    ("Bluetooth never read, ball or not", permissions,
+     ('if kind == "bluetooth" and ball is None:', 'if kind == "bluetooth":')),
+    ("Bluetooth read in a --no-ball run", permissions,
+     ('if kind == "bluetooth" and ball is None:', "if False:")),
+    ("Terminal closed lifts its refusal", permissions,
+     ('if read[0] == "not running" and kind in permissions:', "if False:")),
+    ("permissions read once and never again", permissions,
+     ("permissions_at = now\n", "permissions_at = now + 1e9\n")),
+    ("no ⚠ in the title", permissions,
+     ('return any(state == "refused" for state, _ in permissions.values())', "return False")),
+    ("a permission's click opens nothing", permissions,
+     ("ok, why = platform_seam.permissions.settings(kind)",
+      'ok, why = False, "not wired"')),
     ("the ball kept on quit", ball,
      ("        ball.set_wanted(False)\n        letting_go", "        letting_go")),
 ]

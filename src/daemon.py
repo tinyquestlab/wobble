@@ -95,6 +95,12 @@ TABS_EVERY_S = 1.0
 # only while such a question waits; a second late is a beat at most.
 APPROVED_EVERY_S = 1.0
 
+# How often the permissions are read again (spec 03, task 05). Bluetooth's read
+# measured ~12 ms here, against nothing for the other two, and the menu refreshes
+# four times a second; a grant switched in System Settings is in the menu within
+# this, which is quicker than anybody gets back from the Settings window.
+PERMISSIONS_EVERY_S = 2.0
+
 
 def stamp() -> str:
     return time.strftime("%H:%M:%S")
@@ -1201,6 +1207,60 @@ async def run(args) -> int:
         say("at login" if ok else "AT LOGIN NOT CHANGED", why or "")
         said_login = platform_seam.login.state()     # said just now, in the click's own words
 
+    # Spec 03: `{kind: (state, why)}` as last read, in the seam's order, and when.
+    permissions: dict[str, tuple[str | None, str | None]] = {}
+    permissions_at: float | None = None
+
+    def at_permission(kind: str, read: tuple[str | None, str | None]) -> None:
+        """Say a permission when it changes, the first read included (spec 03, criterion 6).
+
+        Worded like `at_login`: what it is now, and for a refusal what stops
+        working, which is the seam's `why`. A refusal and a read that failed are
+        in capitals, as every other line about something wobble cannot do.
+        """
+        if permissions.get(kind) == read:
+            return
+        state, why = read
+        if state == "granted":
+            say("permission", f"{kind} granted")
+        elif state == "refused":
+            say("PERMISSION OFF", why or kind)
+        elif state in ("not asked", "not running"):
+            say("permission", f"{kind} {state} — {why}" if why else f"{kind} {state}")
+        else:
+            say("CANNOT SEE PERMISSION", why or f"{kind} could not be read")
+
+    def read_permissions(now: float) -> dict[str, tuple[str | None, str | None]]:
+        """Every permission, read again once `PERMISSIONS_EVERY_S` has passed.
+
+        Bluetooth is left out of a `--no-ball` run: nothing there uses the radio,
+        and an alert for it would be a fix for nothing. "Not running" keeps the
+        answer before it, since macOS answers nothing about an app that is not
+        running (task 01) — a refusal does not lift because Terminal was closed.
+        """
+        nonlocal permissions_at
+        if permissions_at is not None and now < permissions_at + PERMISSIONS_EVERY_S:
+            return permissions
+        permissions_at = now
+        for kind in platform_seam.permissions.kinds():
+            if kind == "bluetooth" and ball is None:
+                continue
+            read = platform_seam.permissions.state(kind)
+            if read[0] == "not running" and kind in permissions:
+                continue
+            at_permission(kind, read)
+            permissions[kind] = read
+        return permissions
+
+    def alerting() -> bool:
+        """A `⚠` in the title: something is refused (spec 03)."""
+        return any(state == "refused" for state, _ in permissions.values())
+
+    def open_permission(kind: str) -> None:
+        """A permission's line clicked: its pane opened, and said either way (spec 03)."""
+        ok, why = platform_seam.permissions.settings(kind)
+        say("permission" if ok else "SETTINGS NOT OPENED", why or kind)
+
     def offer(now: float, watching: str | None = None) -> list:
         """The menu behind a left click, rebuilt from what the ball mirror says now.
 
@@ -1258,7 +1318,9 @@ async def run(args) -> int:
             on_quit=quitting.set,
             on_silence=silencing.append,
             login=login,
-            on_login=switch_login)
+            on_login=switch_login,
+            permissions=read_permissions(now),
+            on_permission=open_permission)
 
     def attended(taken: Taken, how: str) -> None:
         """What happens after the core was told, whichever door told it.
@@ -1312,7 +1374,7 @@ async def run(args) -> int:
 
     cannot_draw = menubar.refresh(queue.live(), ball_connected=False,
                                   muted=signaller.muted, have_ball_mirror=ball is not None,
-                                  menu=offer(time.monotonic()))
+                                  menu=offer(time.monotonic()), alert=alerting())
     if cannot_draw is not None:
         say("MENU BALL", cannot_draw)
     unreadable = 0
@@ -2054,7 +2116,10 @@ async def run(args) -> int:
                                       battery=ball.battery if ball is not None else None,
                                       muted=signaller.muted,
                                       have_ball_mirror=ball is not None,
-                                      menu=offer(now, watching=watching), showing=showing)
+                                      # After `menu=`: arguments are evaluated in
+                                      # order, so this is what `offer` just read.
+                                      menu=offer(now, watching=watching), showing=showing,
+                                      alert=alerting())
         if cannot_draw is not None:
             say("MENU BALL", cannot_draw)
         if ball is not None:
