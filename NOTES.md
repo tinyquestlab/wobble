@@ -42,6 +42,13 @@ that spec's `learnings.md`; this is the short, still-true version. Sorted from s
   login switch. Raising windows through Launch Services to drop Accessibility was decided not to
   do: Accessibility also reads the front window's title, and nothing without a permission can.
   "Open…" sits at the end of the alert's label: a plain `NSMenuItem` has no right-aligned column.
+- 2026-10-07 (spec 04): wobble speaks as Pikachu or Eevee — the cry and the led of a `done`,
+  chosen in `Settings › Partner`, kept in `var/partner`, switched live. Every partner's ladder is
+  loaded at startup, so a switch is a lookup that cannot fail; a reload would re-read a config that
+  may have been edited mid-run. The `partners` block holds no path and no dex: the path is
+  `ladder.cry_of(name)` and the dex lives in `tools/fetch_cry.py`, one copy each.
+- 2026-10-07 (spec 04): `--cry` given fixes the cry for the run, and then no partner line is
+  checked, even for `--cry pikachu.wav`: a ✓ would say the menu could change it.
 
 ## Learnings
 
@@ -113,3 +120,9 @@ that spec's `learnings.md`; this is the short, still-true version. Sorted from s
   The daemon keeps its last answer then.
 - 2026-10-07 (spec 03, task 05): `CBManager.authorization()` costs ~12 ms a read, so permissions
   are read every 2 s, not on each of the menu's four refreshes a second.
+- 2026-10-07 (spec 04, task 01): Eevee's cry is 0.822 s, 14 upload frames; Pikachu's 1.012 s,
+  17. Both far under the 256-frame ceiling (PROTOCOL §7.1), and no timing depends on a cry's length.
+- 2026-10-07 (spec 04, task 02): a `slots=True` dataclass field named like a method replaces it
+  without a word; every caller then gets "'str' object is not callable".
+- 2026-10-07 (spec 04, task 03): a partner switched during an upload must not mark the slot as
+  holding the new cry. `_put` keeps the path it started with and leaves the slot stale if it moved.

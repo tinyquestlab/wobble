@@ -47,3 +47,19 @@
 ## Concepts learned
 
 ## Promoted
+
+- `--dex N` wrote over `pikachu.wav` → stays here (fixed in task 01; `check_fetch_cry` pins it).
+- Eevee's and Pikachu's cry sizes → NOTES.md (Learnings).
+- `fetch_cry` holds the dex, the config may too → stays here (superseded by the next entry).
+- The `partners` block holds no path and no dex → NOTES.md (History).
+- A `slots=True` field shadows a method → NOTES.md (Learnings).
+- New code reusing old guards' names stales mutants → stays here (the exactly-once rule worked).
+- Every partner's ladder loaded at startup → NOTES.md (History).
+- The LED needed no stale mark → stays here (`_colour` says it).
+- A switch during an upload → NOTES.md (Learnings).
+- `--cry` defaults to None and fixes the cry → NOTES.md (History), with the no-✓ choice below.
+- The click goes through the same check as a hand edit → stays here (task 04's comments say it).
+- `WOBBLE_PARTNER_EVERY_S` in the edge harness → stays here (one harness's knob).
+- No partner checked under `--cry` → NOTES.md (History).
+- A desk step's quoted text is read from the code → stays here (one instance so far).
+- The rename in one word-boundary pass → stays here.

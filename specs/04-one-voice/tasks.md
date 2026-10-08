@@ -1,6 +1,6 @@
 # Tasks — S04
 
-**6 of 7 done · next: 07 — close learnings.md and promote**
+**7 of 7 done**
 
 - [x] **01 — fetch both cries by name, and measure Eevee's.** `tools/fetch_cry.py --voice
   pikachu|eevee` writes `assets/cries/<voice>.wav` (`--dex` stays, for anything else);
@@ -51,6 +51,6 @@
   Done 2026-10-07: `check_voices.py` is `check_partners.py`; every table keeps its row count.
   The suite: 28 of 29, `check_raise` refused one leg because the screen was locked — it fails the
   same on the commit before, so it is the Mac's state, not the rename.
-- [ ] **07 — close learnings.md and promote.**
+- [x] **07 — close learnings.md and promote.**
 
 ---
