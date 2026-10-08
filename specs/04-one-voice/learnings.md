@@ -36,6 +36,9 @@
   next read looked the same as one taken at once; at 30 s only the click can make the change.
 - 2026-10-07: under `--cry` neither voice line is checked, even for `--cry pikachu.wav`. A CHOICE:
   the run's cry is the flag's, and a ✓ would say the menu could change it.
+- 2026-10-07: step 32's first draft quoted the `voice` log line and Eevee's ids from memory; both
+  were wrong (the line ends `— {cries()}`; the ids stop at 63, plus 143). A desk step's quoted
+  text is read from the code and config, since the desk is where a wrong quote costs a re-run.
 
 ## Concepts learned
 

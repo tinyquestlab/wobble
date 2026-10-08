@@ -1,6 +1,6 @@
 # Tasks — S04
 
-**4 of 6 done · next: 05 — docs**
+**5 of 6 done · next: 06 — close learnings.md and promote**
 
 - [x] **01 — fetch both cries by name, and measure Eevee's.** `tools/fetch_cry.py --voice
   pikachu|eevee` writes `assets/cries/<voice>.wav` (`--dex` stays, for anything else);
@@ -37,9 +37,11 @@
   once rather than at the next 2 s read. A click is checked like a hand edit (`chosen_voice`).
   Under `--cry` neither line is checked. `check_menubar`: 9 rows, 6 mutants;
   `check_daemon_edges` "the voice menu": 10 rows, 9 mutants.
-- [ ] **05 — docs.** README (choosing the voice; install fetches both), ROADMAP phase 04 status,
+- [x] **05 — docs.** README (choosing the voice; install fetches both), ROADMAP phase 04 status,
   DESK-CHECKS Part B step 32 (Eevee by ear on the new ball, the beige, `129` after a switch, the
   choice across a restart).
+  Done 2026-10-07: README gains "Pikachu or Eevee"; install fetches both cries; ROADMAP marks 04
+  built with step 32 open; step 32 names the log lines and ids from the code, not from memory.
 - [ ] **06 — close learnings.md and promote.**
 
 ---

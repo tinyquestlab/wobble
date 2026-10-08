@@ -25,11 +25,16 @@ to be honest about up front — Wayland cannot raise another app's window at all
 desktop may have no tray. Both are walls, not gaps; the phase ships the degraded behaviour and
 says so in words.
 
-## 04 — More voices
+## 04 — More voices *(built — `specs/04-one-voice/`; DESK-CHECKS Part B step 32 open)*
 
 The ball holds one uploaded stroll cry at a time (effect `129` plays whatever was uploaded last,
 `docs/PROTOCOL.md` §7.2). Pikachu first, then Eevee, then whatever else. On the new ball both
 partners already have built-in sounds (§6.5); the old one needs the upload.
+
+Built in spec 04, narrowed on 2026-10-07 to one voice for everything: Pikachu or Eevee, chosen in
+**Settings › Voice** and kept in `var/voice`. Eevee's moods and beige are guesses until step 32
+hears and sees them. A voice per session waits for a second ball: with one stroll slot, it would
+re-upload on every signal. Any Pokémon past the two partners speaks only through `129`.
 
 ## 05 — Buddy
 

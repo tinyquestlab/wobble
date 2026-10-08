@@ -1,6 +1,6 @@
 #!/bin/sh
 # Set wobble up on this Mac: a Python 3.12 venv, its dependencies, the
-# Pikachu cry, and the Claude Code hooks. Safe to run again; each step skips
+# partners' cries, and the Claude Code hooks. Safe to run again; each step skips
 # what is already done. README.md walks through what each step is for.
 #
 #     ./install.sh

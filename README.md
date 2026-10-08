@@ -19,8 +19,8 @@ No ball? It still works: the menu bar shows what is waiting and the Mac makes th
 
 > **Unofficial fan project.** Not affiliated with, endorsed by or connected to Nintendo,
 > Creatures Inc., GAME FREAK inc. or The Pokémon Company. Free, non-commercial, and it stays that
-> way. No Nintendo asset is in this repository: the Pikachu cry is downloaded onto your own Mac at
-> install time. Details in [NOTICE.md](NOTICE.md).
+> way. No Nintendo asset is in this repository: Pikachu's and Eevee's cries are downloaded onto your
+> own Mac at install time. Details in [NOTICE.md](NOTICE.md).
 
 ## What you need
 
@@ -29,7 +29,7 @@ No ball? It still works: the menu bar shows what is waiting and the Mac makes th
 | **A Mac** | macOS only, for now. Built and checked on macOS 26 with Apple silicon |
 | **[Claude Code](https://claude.com/claude-code)** | in a terminal, in VS Code, or in the Claude desktop app's Code tab |
 | **Python 3.12** | `brew install python@3.12`. The `python3` that ships with macOS is too old |
-| **ffmpeg** *(optional)* | `brew install ffmpeg`, to convert the Pikachu cry. Without it the ball plays its built-in sounds only |
+| **ffmpeg** *(optional)* | `brew install ffmpeg`, to convert the cries. Without it the ball plays its built-in sounds only |
 | **A Poké Ball Plus** *(optional)* | the accessory made for *Pokémon: Let's Go* on the Switch. wobble works without one |
 
 No Homebrew? Get it from [brew.sh](https://brew.sh) first.
@@ -45,7 +45,8 @@ cd wobble
 `install.sh` does four things, and you can run it again at any time:
 
 1. Creates a Python environment in `venv/` and installs five libraries into it (`requirements.txt`).
-2. Downloads Pikachu's cry and converts it into the ball's format (`tools/fetch_cry.py`).
+2. Downloads Pikachu's and Eevee's cries and converts them into the ball's format
+   (`tools/fetch_cry.py`).
 3. Shows the Claude Code hooks it wants to add to `~/.claude/settings.json`, and asks before
    writing them. A hook is how Claude Code tells wobble that a session finished or is waiting.
    It never touches a hook that is not its own, and it backs the file up first.
@@ -141,6 +142,20 @@ comes.
 Every number above lives in [`config/signals.json`](config/signals.json) and can be changed
 there without touching code.
 
+## Pikachu or Eevee
+
+wobble speaks with Pikachu unless you choose Eevee. Click the menu bar ball and choose
+**Settings › Voice**: the one with the ✓ is in use. The change takes effect at once, and wobble
+keeps it after a restart.
+
+The voice changes everything a finished session does: the cries it plays (on a newer ball, each
+one has its own happy, proud, sad and lonely cries), the cry the ball holds for the older ball,
+the colour of the ring and of the menu bar's ball (Pikachu's yellow, Eevee's beige), and the
+Mac's sound when there is no ball.
+
+A voice whose cry was never downloaded is greyed, and says the command that downloads it. Started
+with `--cry <file>`, both lines are greyed: that file is the voice for the whole run.
+
 ## The button
 
 The ball's top button is the only control.
@@ -176,8 +191,8 @@ beside it is how many sessions are waiting.
 
 Click it for the menu: a ⚠ line for each permission switched off, every waiting session (click
 one to go to it; hold **⌥** to silence it instead), **Mute the sounds** (the ball still buzzes and
-lights), connect or disconnect the ball, **Settings ›** (each permission, and whether wobble opens
-at login), and **Quit wobble**.
+lights), connect or disconnect the ball, **Settings ›** (each permission, the voice, and whether
+wobble opens at login), and **Quit wobble**.
 
 ## Running with no ball
 
@@ -227,7 +242,7 @@ the yellow light wobble sent it until a Switch writes its own.
 | **Nothing happens when a session finishes** | restart Claude Code after installing: hooks load when a session starts. wobble also says it in its own output when no hooks are wired |
 | **A session in the Claude desktop app never signals** | only the Code tab, run on this Mac (Local), loads Claude Code's hooks |
 | **The ball never connects** | press its top button while wobble is running. Check that no Switch and no other wobble holds it, and that Bluetooth is allowed |
-| **The ball buzzes but plays no cry** | run `venv/bin/python3 tools/fetch_cry.py`. It needs ffmpeg |
+| **The ball buzzes but plays no cry** | run `venv/bin/python3 tools/fetch_cry.py --voice pikachu` (or `eevee`). It needs ffmpeg |
 | **The button quiets the ball but no window comes forward** | the menu has a ⚠ line if Accessibility is off: click it and allow the app wobble runs in. If no window comes forward after that, restart wobble |
 | **wobble does not start at login** | **Settings ›** in the menu says why: **Open wobble at login** unchecked means it is off; **Off in Login Items** means switch wobble on in System Settings › General › Login Items & Extensions › App Background Activity |
 | **"another wobble daemon is already running"** | quit the app, or the other terminal, first |
