@@ -99,6 +99,8 @@ turns the moods off. `tools/fetch_cry.py` already takes `--dex`, but always writ
    a CHOICE, to be checked at the desk by ear.
 2. **Eevee's beige.** It is `1180` (r12 g9 b4), a GUESS. No Eevee LED was ever captured
    (pokeball `research/STROLL-SLOTS.md` §6). The desk picks the final value.
+   **2026-10-08:** `1180` read pale, near white, at the desk. It is now `344`, Pidgey's captured
+   brown, a stand-in until a capture of the moment Eevee goes into the ball.
 3. **Does `129` play the upload on a new ball that has never been on a stroll?** This is
    §10's open question. It matters only for the fallback.
 

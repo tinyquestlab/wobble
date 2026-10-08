@@ -692,7 +692,7 @@ def partner_live(patch=None):
     d.wait("partner")
     time.sleep(1.0)                             # five reads of the same file
     rows.append(("eevee written: said once, its cry, its led and its moods",
-                 d.said("partner"), [f"Eevee now, with eevee.wav and led 1180 — {EEVEE}"]))
+                 d.said("partner"), [f"Eevee now, with eevee.wav and led 344 — {EEVEE}"]))
     rows.append(("…the ball is handed Eevee's cry, once",
                  d.lines.count("FAKEBALL voice eevee.wav"), 1))
     rows.append(("…and the next done cries happy, from Eevee's own",

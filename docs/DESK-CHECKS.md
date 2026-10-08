@@ -704,14 +704,15 @@ venv/bin/python3 -m src.daemon          # the real thing
 32. **Eevee speaks** (spec 04). With both cries fetched (`./install.sh`), the new ball connected,
     and a real session to finish:
     - **Choose Eevee** in **Settings › Partner**. The ✓ moves at once, the log's `partner` line
-      says `Eevee now, with eevee.wav and led 1180 — …` once, and `var/partner` reads `eevee`.
-    - **Finish a session.** The ring lights beige, not yellow, and so does the menu bar's ball.
+      says `Eevee now, with eevee.wav and led 344 — …` once, and `var/partner` reads `eevee`.
+    - **Finish a session.** The ring lights brown (orange on the LED), not yellow, and so does
+      the menu bar's ball.
       The cry is Eevee's by ear: happy after a quick turn, proud after a long one, sad after an
       error (the ids in the log's `play (beat)` line are from `49`–`63`, `143` or `231`). Write
       down any mood that sounds wrong for Eevee — the mapping is a guess (spec 04, open
       question 1).
-    - **The beige itself.** Look at the ring beside a real Eevee picture or the Switch's. Write
-      down the value that looks right; `1180` is a guess (open question 2).
+    - **The brown itself.** Look at the ring beside a real Eevee picture or the Switch's. Write
+      down the value that looks right; `344` is Pidgey's brown, a stand-in (open question 2).
     - **`129` after the switch.** Quit, start with `--one-cry`, and finish a session: the ball
       plays Eevee's cry from the upload, not Pikachu's. On the old ball, without the flag, the
       same.
@@ -722,6 +723,11 @@ venv/bin/python3 -m src.daemon          # the real thing
     **What would be a defect:** a ✓ that does not move, or moves back; a yellow ring or Pikachu's
     cry after Eevee is chosen; `129` playing the old cry after a switch while connected; the
     choice lost on a restart; a log line every read instead of once per change.
+
+    **Heard 2026-10-08**, on the new ball: Eevee's cry and its variations, from a real session's
+    done with another app in front. The first guess at her LED, `1180`, read pale, near white, so
+    it became `344`, not yet looked at. `129` after the switch and the trip back to Pikachu are
+    still to do.
 
 ### When your own eye is the instrument, point a camera at it
 

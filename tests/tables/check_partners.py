@@ -195,9 +195,9 @@ def table(sheet: Sheet, mod) -> None:
 
     sheet.head("Eevee")
     edone = attempt(lambda: eevee.voice(DONE))
-    sheet.row("done: led 1180, a beige, eevee.wav on the Mac",
+    sheet.row("done: led 344, Pidgey's brown, eevee.wav on the Mac",
               attempt(lambda: (edone.led, edone.tint, edone.mac_sound)),
-              (1180, "#E6C89A", str(mod.cry_of("eevee"))))
+              (344, "#A8743A", str(mod.cry_of("eevee"))))
     sheet.row("her pools are Pikachu's, shifted (N+29, 230→231, 181 dropped)",
               attempt(lambda: eevee.moods[DONE].pools),
               attempt(lambda: {mood: tuple(e for e in map(shifted, ids) if e is not None)
@@ -214,7 +214,7 @@ def table(sheet: Sheet, mod) -> None:
     custom = attempt(lambda: mod.load(shipped, partner="eevee", cry="/tmp/other.wav"))
     sheet.row("Eevee with a --cry: the Mac plays that file, the led stays hers",
               attempt(lambda: (custom.voice(DONE).mac_sound, custom.voice(DONE).led)),
-              ("/tmp/other.wav", 1180))
+              ("/tmp/other.wav", 344))
     sheet.row("no partner cries 213, kept free for the catch",
               [name for name, v in SHIPPED["partners"].items() if isinstance(v, dict)
                and any(213 in ids for ids in v["cries"].values() if isinstance(ids, list))], [])

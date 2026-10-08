@@ -44,11 +44,11 @@
         "_source_tint": "task 58, for the menu bar's ball only. led 138 is Pikachu's and lights 9 yellow (the desk, 2026-09-25); this is that yellow as a hex. A READING of the colour, not a measurement of it."
     },
     "eevee": {
-      "led": 1180,
-      "tint": "#E6C89A",
+      "led": 344,
+      "tint": "#A8743A",
       "cries": {"happy": [49, 61, 63, 231], "proud": [61, 63], "sad": [50, 51], "call": [62], "soft": [231], "greet": [58], "lonely": [143]},
       "_source_cries": "spec 04, open question 1: Pikachu's pools moved to Eevee's block, Pikachu N as Eevee N+29 and 230 as 231 (docs/PROTOCOL.md section 6.5) - the same borrowing as Pikachu's _source_cries, read the other way. 181 has no Eevee pair and is dropped; lonely keeps 143, a generic long rumble that is no partner's. A CHOICE, to be checked by ear at the desk on the new ball; on the old one these are only a tap, as Pikachu's are.",
-      "_source_tint": "spec 04, open question 2: beige, asked for 2026-10-07. led 1180 is r12 g9 b4 in the 4-4-4 encoding (docs/PROTOCOL.md section 8.3); no Eevee LED was ever captured, so it is a GUESS, and this tint is a GUESS at how it reads. Both owed the desk."
+      "_source_tint": "spec 04, open question 2. 1180 (r12 g9 b4), the first guess at a beige, read pale, near white, at the desk on 2026-10-08: its blue washes it out. 344 is Pidgey's brown, captured from a real catch (docs/PROTOCOL.md section 8.3), which reads orange on the LED - a STAND-IN, since the Eevee stroll capture carried no LED (pokeball research/STROLL-SLOTS.md section 6). This tint is a GUESS at how 344 reads. Both owed a capture of the moment Eevee goes into the ball."
     }
   },
 
