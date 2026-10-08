@@ -29,7 +29,7 @@ numbered, and task 89's row per ended signal in the sandbox's `logs/signals.tsv`
 and spec 03's permissions, each said once per change, a `⚠` in the title while
 one is refused, Terminal closed leaving its refusal standing, and a line's click
 opening its pane, with what is granted scripted (`BOX/perms`); and spec 04's
-voice, read from `var/voice` at startup and again while running, a name refused
+partner, read from `var/partner` at startup and again while running, a name refused
 by the allowlist, and the cries fetched or not scripted (`BOX/cries`).
 
 Every daemon is the real `src.daemon` run by `tests/tables/edge_harness.py`, on a
@@ -443,7 +443,7 @@ def ball(patch=None):
         world.set("ball", how)
         d = Daemon(box, patch=patch)
         d.wait("restart")
-        d.wait("ball", "scanning; its voice will be")
+        d.wait("ball", "scanning; its cry will be")
         for _ in range(100):
             if "FAKEBALL connected" in d.lines:
                 break
@@ -656,16 +656,16 @@ EEVEE = ("a done cries in a mood, from Eevee's own — happy 49, 61, 63, 231 · 
 EEVEE_HAPPY = (49, 61, 63, 231)                     # config/signals.json, spec 04 task 02
 
 
-def voiced(box: Sandbox, world: World, chosen: str | None) -> Path:
-    """Both cries fetched into the sandbox, and `var/voice` holding `chosen` (spec 04)."""
+def with_partner(box: Sandbox, world: World, chosen: str | None) -> Path:
+    """Both cries fetched into the sandbox, and `var/partner` holding `chosen` (spec 04)."""
     cries = world.edge / "cries"
     cries.mkdir()
     for name in ("pikachu", "eevee"):
         (cries / f"{name}.wav").write_bytes(b"RIFF")
-    voice = box.dir / "var" / "voice"
+    kept = box.dir / "var" / "partner"
     if chosen is not None:
-        voice.write_text(chosen)
-    return voice
+        kept.write_text(chosen)
+    return kept
 
 
 def first_beat(d: Daemon, world: World, project: str) -> list[tuple[int | None, bool]]:
@@ -676,147 +676,147 @@ def first_beat(d: Daemon, world: World, project: str) -> list[tuple[int | None, 
             for s in d.said("play (beat)", project=project)[:1]]
 
 
-def voices(patch=None):
-    """Spec 04, task 03: the voice `var/voice` names, changed live, kept by an allowlist."""
+def partner_live(patch=None):
+    """Spec 04, task 03: the partner `var/partner` names, changed live, kept by an allowlist."""
     rows = []
     box = Sandbox()
     world = World(box)
-    voice = voiced(box, world, None)
+    kept = with_partner(box, world, None)
     world.set("ball", "letgo")
     d = Daemon(box, patch=patch)
     d.wait("restart")
-    rows.append(("no var/voice: Pikachu in the banner, nothing refused",
+    rows.append(("no var/partner: Pikachu in the banner, nothing refused",
                  ([s.startswith("a done cries in a mood, from Pikachu's own")
-                   for s in d.said("cries")], d.said("VOICE NOT KEPT")), ([True], [])))
-    voice.write_text("eevee\n")
-    d.wait("voice")
+                   for s in d.said("cries")], d.said("PARTNER NOT KEPT")), ([True], [])))
+    kept.write_text("eevee\n")
+    d.wait("partner")
     time.sleep(1.0)                             # five reads of the same file
     rows.append(("eevee written: said once, its cry, its led and its moods",
-                 d.said("voice"), [f"Eevee now, with eevee.wav and led 1180 — {EEVEE}"]))
+                 d.said("partner"), [f"Eevee now, with eevee.wav and led 1180 — {EEVEE}"]))
     rows.append(("…the ball is handed Eevee's cry, once",
                  d.lines.count("FAKEBALL voice eevee.wav"), 1))
     rows.append(("…and the next done cries happy, from Eevee's own",
                  [(effect in EEVEE_HAPPY, happy)
-                  for effect, happy in first_beat(d, world, "voiced")], [(True, True)]))
-    voice.write_text("charmander")
-    d.wait("voice", "Pikachu now")
+                  for effect, happy in first_beat(d, world, "with_partner")], [(True, True)]))
+    kept.write_text("charmander")
+    d.wait("partner", "Pikachu now")
     time.sleep(1.0)
-    rows.append(("charmander written: refused once, and the voice is Pikachu again",
-                 (d.said("VOICE NOT KEPT"), len(d.said("voice", "Pikachu now, with pikachu.wav "
+    rows.append(("charmander written: refused once, and the partner is Pikachu again",
+                 (d.said("PARTNER NOT KEPT"), len(d.said("partner", "Pikachu now, with pikachu.wav "
                                                                 "and led 138 — a done cries"))),
-                 ([f"{voice.resolve()} names 'charmander', which is not a voice in the config — the "
-                   f"ones there are pikachu, eevee. The voice is Pikachu"], 1)))
+                 ([f"{kept.resolve()} names 'charmander', which is not a partner in the config — the "
+                   f"ones there are pikachu, eevee. The partner is Pikachu"], 1)))
     rows.append(("…the ball is handed Pikachu's cry back, once",
                  d.lines.count("FAKEBALL voice pikachu.wav"), 1))
     (world.edge / "cries" / "eevee.wav").unlink()
-    voice.write_text("eevee")
-    d.wait("VOICE NOT KEPT", "never fetched")
+    kept.write_text("eevee")
+    d.wait("PARTNER NOT KEPT", "never fetched")
     time.sleep(1.0)
     rows.append(("eevee chosen with its cry deleted: refused once, Pikachu kept",
-                 ([s.endswith("— venv/bin/python3 tools/fetch_cry.py --voice eevee. "
-                              "The voice is Pikachu")
-                   for s in d.said("VOICE NOT KEPT", "never fetched")],
-                  len(d.said("voice")), d.lines.count("FAKEBALL voice eevee.wav")),
+                 ([s.endswith("— venv/bin/python3 tools/fetch_cry.py --partner eevee. "
+                              "The partner is Pikachu")
+                   for s in d.said("PARTNER NOT KEPT", "never fetched")],
+                  len(d.said("partner")), d.lines.count("FAKEBALL voice eevee.wav")),
                  ([True], 2, 1)))
     rows.append(("live: quits clean", d.stop(), 0))
 
     legs = [("eevee kept from the last run", "eevee", (), [EEVEE], [], EEVEE_HAPPY),
-            ("an old name in var/voice", "mewtwo", (),
-             None, ["'mewtwo', which is not a voice in the config — the ones there "
-                    "are pikachu, eevee. The voice is Pikachu"], HAPPY),
-            ("--cry given: var/voice is not read", "eevee",
+            ("an old name in var/partner", "mewtwo", (),
+             None, ["'mewtwo', which is not a partner in the config — the ones there "
+                    "are pikachu, eevee. The partner is Pikachu"], HAPPY),
+            ("--cry given: var/partner is not read", "eevee",
              ("--cry", str(ROOT / "assets" / "cries" / "pidgey.wav")),
              ["129 for every done (--cry is pidgey.wav, and the built-in cries are Pikachu's)"],
              [], (129,)),
-            ("--one-cry in Eevee's voice", "eevee", ("--one-cry",),
+            ("--one-cry as Eevee", "eevee", ("--one-cry",),
              ["129 for every done, Eevee's uploaded cry (--one-cry)"], [], (129,))]
     for how, chosen, args, banner, refused, cries in legs:
         box = Sandbox()
         world = World(box)
-        voiced(box, world, chosen)
+        with_partner(box, world, chosen)
         d = Daemon(box, "--no-ball", *args, patch=patch)
         d.wait("restart")
         time.sleep(1.0)
         said = d.said("cries")
-        rows.append((f"{how}: the banner names the voice, nothing changes after",
+        rows.append((f"{how}: the banner names the partner, nothing changes after",
                      (said if banner is not None else
                       [s.startswith("a done cries in a mood, from Pikachu's own")
-                       for s in said], d.said("voice")),
+                       for s in said], d.said("partner")),
                      (banner if banner is not None else [True], [])))
         rows.append((f"{how}: refused at startup only if it must, once",
-                     [s.split(" names ", 1)[-1] for s in d.said("VOICE NOT KEPT")], refused))
-        rows.append((f"{how}: a done's first beat is that voice's",
+                     [s.split(" names ", 1)[-1] for s in d.said("PARTNER NOT KEPT")], refused))
+        rows.append((f"{how}: a done's first beat is that partner's",
                      [effect in cries for effect, _ in first_beat(d, world, "kept")], [True]))
         rows.append((f"{how}: quits clean", d.stop(), 0))
     return rows
 
 
-def shown_voices(d: Daemon) -> list:
-    """What `Settings › Voice` was handed last: `[in use, {partner: why not}]`."""
-    shown = [json.loads(line[len("FAKEVOICES "):]) for line in list(d.lines)
-             if line.startswith("FAKEVOICES ")]
+def shown_partners(d: Daemon) -> list:
+    """What `Settings › Partner` was handed last: `[in use, {partner: why not}]`."""
+    shown = [json.loads(line[len("FAKEPARTNERS "):]) for line in list(d.lines)
+             if line.startswith("FAKEPARTNERS ")]
     return shown[-1] if shown else []
 
 
-def voice_menu(patch=None):
-    """Spec 04, task 04: a voice line clicked is kept in var/voice and taken at once."""
+def partner_menu(patch=None):
+    """Spec 04, task 04: a partner line clicked is kept in var/partner and taken at once."""
     rows = []
     box = Sandbox()
     world = World(box)
-    voice = voiced(box, world, None)
+    kept = with_partner(box, world, None)
     world.set("ball", "letgo")
     # The read is 30 s here, so only the click itself can make the change in time.
-    d = Daemon(box, patch=patch, env={"WOBBLE_VOICE_EVERY_S": "30"})
+    d = Daemon(box, patch=patch, env={"WOBBLE_PARTNER_EVERY_S": "30"})
     d.wait("restart")
     time.sleep(0.5)
     rows.append(("both fetched: both offered, Pikachu in use",
-                 shown_voices(d), ["pikachu", {"pikachu": None, "eevee": None}]))
+                 shown_partners(d), ["pikachu", {"pikachu": None, "eevee": None}]))
     world.set("choose", "eevee")
     rows.append(("Eevee clicked: said within a second",
-                 d.wait("voice", "Eevee now", timeout=1.0), True))
+                 d.wait("partner", "Eevee now", timeout=1.0), True))
     time.sleep(0.5)
-    rows.append(("…kept in var/voice, nothing left aside",
-                 (voice.read_text() if voice.is_file() else None,
-                  sorted(p.name for p in voice.parent.iterdir() if p.name.startswith("."))),
+    rows.append(("…kept in var/partner, nothing left aside",
+                 (kept.read_text() if kept.is_file() else None,
+                  sorted(p.name for p in kept.parent.iterdir() if p.name.startswith("."))),
                  ("eevee\n", [])))
     rows.append(("…the ✓ moves to it, and the ball is handed its cry",
-                 (shown_voices(d)[:1], d.lines.count("FAKEBALL voice eevee.wav")),
+                 (shown_partners(d)[:1], d.lines.count("FAKEBALL voice eevee.wav")),
                  (["eevee"], 1)))
     world.set("choose", "pikachu")
-    d.wait("voice", "Pikachu now", timeout=1.0)
+    d.wait("partner", "Pikachu now", timeout=1.0)
     (world.edge / "cries" / "eevee.wav").unlink()
     time.sleep(0.5)
     rows.append(("eevee.wav deleted: Eevee offered greyed, with how to fetch it",
-                 shown_voices(d),
+                 shown_partners(d),
                  ["pikachu", {"pikachu": None,
-                              "eevee": "not fetched · tools/fetch_cry.py --voice eevee"}]))
+                              "eevee": "not fetched · tools/fetch_cry.py --partner eevee"}]))
     world.set("choose", "eevee")
-    d.wait("VOICE NOT KEPT", "never fetched", timeout=1.0)
+    d.wait("PARTNER NOT KEPT", "never fetched", timeout=1.0)
     time.sleep(0.5)
     rows.append(("…clicked anyway: refused once, Pikachu kept",
-                 (len(d.said("VOICE NOT KEPT", "never fetched")), len(d.said("voice")),
-                  shown_voices(d)[:1]), (1, 2, ["pikachu"])))
-    voice.unlink(missing_ok=True)
-    voice.mkdir()
+                 (len(d.said("PARTNER NOT KEPT", "never fetched")), len(d.said("partner")),
+                  shown_partners(d)[:1]), (1, 2, ["pikachu"])))
+    kept.unlink(missing_ok=True)
+    kept.mkdir()
     world.set("choose", "pikachu")
-    d.wait("VOICE NOT KEPT", "could not be written", timeout=1.0)
+    d.wait("PARTNER NOT KEPT", "could not be written", timeout=1.0)
     time.sleep(0.3)
-    rows.append(("var/voice cannot be written: said, the voice kept, nothing left aside",
-                 ([s.endswith(". The voice is Pikachu")
-                   for s in d.said("VOICE NOT KEPT", "could not be written")],
-                  sorted(p.name for p in voice.parent.iterdir() if p.name.startswith("."))),
+    rows.append(("var/partner cannot be written: said, the partner kept, nothing left aside",
+                 ([s.endswith(". The partner is Pikachu")
+                   for s in d.said("PARTNER NOT KEPT", "could not be written")],
+                  sorted(p.name for p in kept.parent.iterdir() if p.name.startswith("."))),
                  ([True], [])))
     rows.append(("live: quits clean", d.stop(), 0))
 
     box = Sandbox()
     world = World(box)
-    voiced(box, world, "eevee")
+    with_partner(box, world, "eevee")
     d = Daemon(box, "--no-ball", "--cry", str(ROOT / "assets" / "cries" / "pidgey.wav"),
                patch=patch)
     d.wait("restart")
     time.sleep(0.5)
     rows.append(("--cry given: both greyed with why, neither in use",
-                 shown_voices(d),
+                 shown_partners(d),
                  [None, {name: "not while --cry pidgey.wav is given"
                          for name in ("pikachu", "eevee")}]))
     rows.append(("--cry: quits clean", d.stop(), 0))
@@ -1349,8 +1349,8 @@ SCENARIOS = [("restart", restore), ("live loop", live), ("Terminal", terminal),
              ("reference leg: no --notify-anyway",
               lambda patch=None: watching_flag(patch, anyway=False)),
              ("the lock", locks), ("the ball on quit", ball), ("a catch", catch),
-             ("the cries", cries), ("the voices", voices),
-             ("the voice menu", voice_menu), ("the moods", moods), ("an approved Bash", approved),
+             ("the cries", cries), ("the partner", partner_live),
+             ("the partner menu", partner_menu), ("the moods", moods), ("an approved Bash", approved),
              ("alternating B", alternating), ("a glance", glance), ("the silence", silence),
              ("a signal's life", lives), ("the permissions", permissions),
              ("KeyboardInterrupt", interrupted)]
@@ -1417,54 +1417,54 @@ MUTANTS = [
      ("signaller.one_cry = args.one_cry or other_voice", "signaller.one_cry = args.one_cry")),
     ("the cries unsaid", cries,
      ("    say(\"cries\", cries())", "    (lambda *a: None)(\"cries\", cries())")),
-    ("var/voice never read again", voices,
-     ("if args.cry is None and now >= voice_at + VOICE_EVERY_S:", "if False:")),
-    ("var/voice read under a --cry too", voices,
-     ("if args.cry is None and now >= voice_at + VOICE_EVERY_S:",
-      "if now >= voice_at + VOICE_EVERY_S:")),
-    ("var/voice not read at startup", voices,
-     ("partner, said_refused = (chosen_voice(voice_file, tuple(ladders)) if args.cry is None",
-      "partner, said_refused = ((DEFAULT_VOICE, None) if args.cry is None")),
-    ("a refusal at startup unsaid", voices,
-     ("    if said_refused is not None:\n        say(\"VOICE NOT KEPT\"",
-      "    if False:\n        say(\"VOICE NOT KEPT\"")),
-    ("a refusal said on every read", voices,
+    ("var/partner never read again", partner_live,
+     ("if args.cry is None and now >= partner_at + PARTNER_EVERY_S:", "if False:")),
+    ("var/partner read under a --cry too", partner_live,
+     ("if args.cry is None and now >= partner_at + PARTNER_EVERY_S:",
+      "if now >= partner_at + PARTNER_EVERY_S:")),
+    ("var/partner not read at startup", partner_live,
+     ("partner, said_refused = (chosen_partner(partner_file, tuple(ladders)) if args.cry is None",
+      "partner, said_refused = ((DEFAULT_PARTNER, None) if args.cry is None")),
+    ("a refusal at startup unsaid", partner_live,
+     ("    if said_refused is not None:\n        say(\"PARTNER NOT KEPT\"",
+      "    if False:\n        say(\"PARTNER NOT KEPT\"")),
+    ("a refusal said on every read", partner_live,
      ("if refused != said_refused:", "if True:")),
-    ("a change never reaches the signaller", voices,
+    ("a change never reaches the signaller", partner_live,
      ("        signaller.ladder = ladder\n", "")),
-    ("a change never reaches the ball", voices,
+    ("a change never reaches the ball", partner_live,
      ("            ball.revoice(cry_of(name))", "            pass")),
-    ("a change unsaid", voices,
-     ("        say(\"voice\", f\"{name.capitalize()} now", "        (lambda *a, **k: None)(\"voice\", f\"{name.capitalize()} now")),
-    ("a voice kept with its cry never fetched", voices,
+    ("a change unsaid", partner_live,
+     ("        say(\"partner\", f\"{name.capitalize()} now", "        (lambda *a, **k: None)(\"partner\", f\"{name.capitalize()} now")),
+    ("a partner kept with its cry never fetched", partner_live,
      ("if not cry_of(name).is_file():", "if False:")),
-    ("a name the config does not list kept", voices,
+    ("a name the config does not list kept", partner_live,
      ("if name not in partners:", "if False:")),
-    ("the banner's voice always Pikachu", voices,
+    ("the banner's partner always Pikachu", partner_live,
      ("from {partner.capitalize()}'s own", "from Pikachu's own")),
-    ("a voice click left for the next read", voice_menu,
-     ("            return\n        revoice(*chosen_voice(voice_file, tuple(ladders)))",
+    ("a partner click left for the next read", partner_menu,
+     ("            return\n        switch_partner(*chosen_partner(partner_file, tuple(ladders)))",
       "            return")),
-    ("a voice click taken without asking", voice_menu,
-     ("            return\n        revoice(*chosen_voice(voice_file, tuple(ladders)))",
-      "            return\n        revoice(name, None)")),
-    ("var/voice not written by a click", voice_menu,
-     ("            os.replace(new, voice_file)\n", "")),
-    ("a write that failed unsaid", voice_menu,
-     ("            say(\"VOICE NOT KEPT\", f\"{voice_file} could not be written",
-      "            (lambda *a: None)(\"VOICE NOT KEPT\", f\"{voice_file} could not be written")),
-    ("a failed write's leftover kept", voice_menu,
+    ("a partner click taken without asking", partner_menu,
+     ("            return\n        switch_partner(*chosen_partner(partner_file, tuple(ladders)))",
+      "            return\n        switch_partner(name, None)")),
+    ("var/partner not written by a click", partner_menu,
+     ("            os.replace(new, partner_file)\n", "")),
+    ("a write that failed unsaid", partner_menu,
+     ("            say(\"PARTNER NOT KEPT\", f\"{partner_file} could not be written",
+      "            (lambda *a: None)(\"PARTNER NOT KEPT\", f\"{partner_file} could not be written")),
+    ("a failed write's leftover kept", partner_menu,
      ("            new.unlink(missing_ok=True)\n", "")),
-    ("a cry never fetched offered", voice_menu,
+    ("a cry never fetched offered", partner_menu,
      ("{name: None if cry_of(name).is_file() else", "{name: None if True else")),
-    ("the voices offered under a --cry", voice_menu,
+    ("the partners offered under a --cry", partner_menu,
      ("        if args.cry is not None:\n            return {name: f\"not while --cry",
       "        if False:\n            return {name: f\"not while --cry")),
-    ("a ✓ under a --cry", voice_menu,
-     ("            voice=partner if args.cry is None else None,", "            voice=partner,")),
-    ("the ✓ on the voice the run started with", voice_menu,
-     ("            voice=partner if args.cry is None else None,",
-      "            voice=DEFAULT_VOICE if args.cry is None else None,")),
+    ("a ✓ under a --cry", partner_menu,
+     ("            partner=partner if args.cry is None else None,", "            partner=partner,")),
+    ("the ✓ on the partner the run started with", partner_menu,
+     ("            partner=partner if args.cry is None else None,",
+      "            partner=DEFAULT_PARTNER if args.cry is None else None,")),
     ("the mood unsaid on the play line", cries,
      ("            mood = (f\" · {signaller.mood}\" if signaller.mood and not signaller.muted",
       "            mood = (\"\" if True")),

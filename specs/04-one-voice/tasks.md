@@ -1,6 +1,6 @@
 # Tasks — S04
 
-**5 of 6 done · next: 06 — close learnings.md and promote**
+**6 of 7 done · next: 07 — close learnings.md and promote**
 
 - [x] **01 — fetch both cries by name, and measure Eevee's.** `tools/fetch_cry.py --voice
   pikachu|eevee` writes `assets/cries/<voice>.wav` (`--dex` stays, for anything else);
@@ -42,6 +42,15 @@
   choice across a restart).
   Done 2026-10-07: README gains "Pikachu or Eevee"; install fetches both cries; ROADMAP marks 04
   built with step 32 open; step 32 names the log lines and ids from the code, not from memory.
-- [ ] **06 — close learnings.md and promote.**
+- [x] **06 — partner, not voice.** The choice is the whole partner, not its voice (his word,
+  2026-10-07): `Settings › Partner`, `var/partner`, `fetch_cry.py --partner`, a `partners` block,
+  the log's `partner` / `PARTNER NOT KEPT`, and spec 04's identifiers with them. The older
+  `Voice` — a kind's sound and light, spec 01 — keeps its name, as does `Ball.revoice`, which
+  changes only the uploaded cry. Done notes above keep the names they were written with.
+
+  Done 2026-10-07: `check_voices.py` is `check_partners.py`; every table keeps its row count.
+  The suite: 28 of 29, `check_raise` refused one leg because the screen was locked — it fails the
+  same on the commit before, so it is the Mac's state, not the rename.
+- [ ] **07 — close learnings.md and promote.**
 
 ---

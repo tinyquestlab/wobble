@@ -35,9 +35,9 @@ echo "ok: $(venv/bin/python3 --version), requirements installed"
 
 say "The partners' cries (assets/cries/, never committed — NOTICE.md)"
 # Optional: without them the ball still plays its built-in sounds, so a missing
-# ffmpeg or network is reported and the install goes on. One per voice (spec 04).
-for voice in pikachu eevee; do
-    venv/bin/python3 tools/fetch_cry.py --voice "$voice" || echo "skipped: $voice's cry can be fetched later with venv/bin/python3 tools/fetch_cry.py --voice $voice"
+# ffmpeg or network is reported and the install goes on. One per partner (spec 04).
+for partner in pikachu eevee; do
+    venv/bin/python3 tools/fetch_cry.py --partner "$partner" || echo "skipped: $partner's cry can be fetched later with venv/bin/python3 tools/fetch_cry.py --partner $partner"
 done
 
 say "Claude Code hooks (~/.claude/settings.json)"

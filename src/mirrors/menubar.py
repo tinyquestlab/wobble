@@ -271,22 +271,22 @@ def permission_alert(kind: str, on_permission) -> tuple:
     return f"⚠ {name} off — {stops} · Open…", _aim(on_permission, kind)
 
 
-def voice_line(name: str, why: str | None, chosen: bool, on_voice) -> tuple:
-    """One partner in `Settings › Voice` (spec 04, task 04).
+def partner_line(name: str, why: str | None, chosen: bool, on_partner) -> tuple:
+    """One partner in `Settings › Partner` (spec 04, task 04).
 
-    Checked while it is the voice in use. One that cannot be chosen — its cry
+    Checked while it is the partner in use. One that cannot be chosen — its cry
     never fetched, or a `--cry` fixing the run's — is greyed with why, and a
     click on it does nothing, since there is nothing it could change to.
     """
     said = name.capitalize() + (f" — {why}" if why else "")
-    return (Checked(said) if chosen else said), (None if why else _aim(on_voice, name))
+    return (Checked(said) if chosen else said), (None if why else _aim(on_partner, name))
 
 
 def settings_menu(permissions: dict[str, tuple[str | None, str | None]],
                   login: tuple[str | None, str | None] | None, on_permission=None,
-                  on_login=None, voices: dict[str, str | None] | None = None,
-                  voice: str | None = None, on_voice=None) -> list:
-    """`Settings ›`: every permission's state, the voice, then the login switch (specs 03, 04).
+                  on_login=None, partners: dict[str, str | None] | None = None,
+                  partner: str | None = None, on_partner=None) -> list:
+    """`Settings ›`: every permission's state, the partner, then the login switch (specs 03, 04).
 
     A granted one is a checked line to read, and a refused one is the alert's
     line, a click to its pane. Never asked is not missing, so it is a greyed
@@ -295,9 +295,9 @@ def settings_menu(permissions: dict[str, tuple[str | None, str | None]],
     could not be read is greyed and never checked (criterion 7); the log says
     why.
 
-    `voices` is the daemon's `{partner: why not}`, `None` for one that can be
-    chosen, and `voice` the one in use, or `None` when none of them is — a
-    `--cry` given. Under a header as the permissions are; `voice_line` says
+    `partners` is the daemon's `{partner: why not}`, `None` for one that can
+    be chosen, and `partner` the one in use, or `None` when none of them is — a
+    `--cry` given. Under a header as the permissions are; `partner_line` says
     each one's words.
     """
     lines: list = []
@@ -316,10 +316,10 @@ def settings_menu(permissions: dict[str, tuple[str | None, str | None]],
             lines.append((f"{name} — cannot be read", None))
     if lines:
         lines.insert(0, ("Permissions", None))
-    if voices:
-        lines += [*([SEPARATOR] if lines else []), ("Voice", None),
-                  *(voice_line(name, why, name == voice, on_voice)
-                    for name, why in voices.items())]
+    if partners:
+        lines += [*([SEPARATOR] if lines else []), ("Partner", None),
+                  *(partner_line(name, why, name == partner, on_partner)
+                    for name, why in partners.items())]
     if login is not None:
         lines += [*([SEPARATOR] if lines else []), login_line(login, on_login)]
     return lines
@@ -332,8 +332,8 @@ def items(ball_connected: bool, *, ball_off: bool = False,
           on_disconnect=None, on_mute=None, on_quit=None, on_silence=None,
           login: tuple[str | None, str | None] | None = None, on_login=None,
           permissions: dict[str, tuple[str | None, str | None]] | None = None,
-          on_permission=None, voices: dict[str, str | None] | None = None,
-          voice: str | None = None, on_voice=None) -> list:
+          on_permission=None, partners: dict[str, str | None] | None = None,
+          partner: str | None = None, on_partner=None) -> list:
     """What the menu offers, as `(label, handler)` pairs.
 
     A `None` handler is a line that is only there to be read, and there are three
@@ -414,7 +414,7 @@ def items(ball_connected: bool, *, ball_off: bool = False,
     worst loss first. `Settings ›` is above Quit, and only when there is
     something to put in it.
 
-    **The voice is chosen in `Settings ›` too** (spec 04), between the
+    **The partner is chosen in `Settings ›` too** (spec 04), between the
     permissions and the login switch. It is principle 2's boundary as login
     is: which partner speaks is how the app is set up, not a signal, and the
     ball has no gesture for it either.
@@ -458,8 +458,8 @@ def items(ball_connected: bool, *, ball_off: bool = False,
     permissions = permissions or {}
     alerts = [permission_alert(kind, on_permission)
               for kind, (state, _why) in permissions.items() if state == "refused"]
-    settings = settings_menu(permissions, login, on_permission, on_login, voices, voice,
-                             on_voice)
+    settings = settings_menu(permissions, login, on_permission, on_login, partners,
+                             partner, on_partner)
     return [*alerts, *([SEPARATOR] if alerts else []),
             *(waiting or [("Nothing waiting", None)]), SEPARATOR, *mute, *link,
             *([SEPARATOR, (Submenu("Settings"), settings)] if settings else []),

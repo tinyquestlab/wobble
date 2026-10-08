@@ -34,8 +34,8 @@
     }
   },
 
-  "voices": {
-    "_about": "spec 04, task 02: what changes with the partner a done speaks with - its LED, its menu bar colour and its pools. ladder.load(voice=...) lays the chosen one over kinds.done, so done itself holds none of the three. The cry is assets/cries/<name>.wav, fetched at install by tools/fetch_cry.py --voice <name>, which also holds each one's National Dex number.",
+  "partners": {
+    "_about": "spec 04, task 02: what changes with the partner a done speaks with - its LED, its menu bar colour and its pools. ladder.load(partner=...) lays the chosen one over kinds.done, so done itself holds none of the three. The cry is assets/cries/<name>.wav, fetched at install by tools/fetch_cry.py --partner <name>, which also holds each one's National Dex number.",
     "pikachu": {
         "led": 138,
         "tint": "#FFE14D",

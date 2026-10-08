@@ -703,19 +703,20 @@ venv/bin/python3 -m src.daemon          # the real thing
 
 32. **Eevee speaks** (spec 04). With both cries fetched (`./install.sh`), the new ball connected,
     and a real session to finish:
-    - **Choose Eevee** in **Settings › Voice**. The ✓ moves at once, the log's `voice` line says
-      `Eevee now, with eevee.wav and led 1180 — …` once, and `var/voice` reads `eevee`.
+    - **Choose Eevee** in **Settings › Partner**. The ✓ moves at once, the log's `partner` line
+      says `Eevee now, with eevee.wav and led 1180 — …` once, and `var/partner` reads `eevee`.
     - **Finish a session.** The ring lights beige, not yellow, and so does the menu bar's ball.
       The cry is Eevee's by ear: happy after a quick turn, proud after a long one, sad after an
-      error (the ids in the log's `play (beat)` line are from `49`–`63`, `143` or `231`). Write down any
-      mood that sounds wrong for Eevee — the mapping is a guess (spec 04, open question 1).
+      error (the ids in the log's `play (beat)` line are from `49`–`63`, `143` or `231`). Write
+      down any mood that sounds wrong for Eevee — the mapping is a guess (spec 04, open
+      question 1).
     - **The beige itself.** Look at the ring beside a real Eevee picture or the Switch's. Write
       down the value that looks right; `1180` is a guess (open question 2).
     - **`129` after the switch.** Quit, start with `--one-cry`, and finish a session: the ball
       plays Eevee's cry from the upload, not Pikachu's. On the old ball, without the flag, the
       same.
-    - **Across a restart.** Quit and start again: the banner's `cries` line says `from Eevee's own`, and the
-      menu's ✓ is still on Eevee.
+    - **Across a restart.** Quit and start again: the banner's `cries` line says
+      `from Eevee's own`, and the menu's ✓ is still on Eevee.
     - **Back to Pikachu.** Choose it: yellow, `led 138`, Pikachu's cries, exactly as before.
 
     **What would be a defect:** a ✓ that does not move, or moves back; a yellow ring or Pikachu's

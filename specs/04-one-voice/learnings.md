@@ -39,6 +39,10 @@
 - 2026-10-07: step 32's first draft quoted the `voice` log line and Eevee's ids from memory; both
   were wrong (the line ends `— {cries()}`; the ids stop at 63, plus 143). A desk step's quoted
   text is read from the code and config, since the desk is where a wrong quote costs a re-run.
+- 2026-10-07: task 06 renamed spec 04's "voice" to "partner" with one word-boundary pass over
+  `src/`, `tools/` and `tests/` together, so each mutant's source text moved with the source it
+  cuts. Only the prose and the kwargs that share the word with spec 01's `Voice` (a kind's sound
+  and light) went by hand: two meanings of one word is what the rename was for.
 
 ## Concepts learned
 

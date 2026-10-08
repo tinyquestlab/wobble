@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""Check which cry `tools/fetch_cry.py` fetches, where it writes it, and that the install fetches each voice.
+"""Check which cry `tools/fetch_cry.py` fetches, where it writes it, and that the install fetches each partner.
 
     venv/bin/python3 tests/tables/check_fetch_cry.py
 
-The voices are the partners, Pikachu and Eevee, by National Dex number (spec 04,
-task 01): `--voice` names one, `--dex` any other Pokémon, written under its
-number so it never takes a voice's file.
+The partners are Pikachu and Eevee, by National Dex number (spec 04,
+task 01): `--partner` names one, `--dex` any other Pokémon, written under its
+number so it never takes a partner's file.
 
 **Nothing here touches the network or `assets/cries/`.** Each run of `main()`
 is pointed at a file that is already there, so it stops at "kept" before any
@@ -74,62 +74,62 @@ def run(*argv: str) -> tuple[object, str]:
     return code, out.getvalue() + err.getvalue()
 
 
-def installed_voices(install: str) -> list[str]:
-    """The voices install.sh loops over, if each one is fetched by `--voice` and may fail."""
-    loop = re.search(r"^for voice in ([\w ]+); do\n(.*?)^done$", install, re.M | re.S)
+def installed_partners(install: str) -> list[str]:
+    """The partners install.sh loops over, if each one is fetched by `--partner` and may fail."""
+    loop = re.search(r"^for partner in ([\w ]+); do\n(.*?)^done$", install, re.M | re.S)
     if not loop:
         return []
     body = loop.group(2)
-    if 'fetch_cry.py --voice "$voice" ||' not in body:
+    if 'fetch_cry.py --partner "$partner" ||' not in body:
         return []
     return loop.group(1).split()
 
 
 def table(sheet: Sheet, install: str = INSTALL) -> None:
     sheet.head("which cry, and where it goes")
-    sheet.row("the voices are exactly the two partners",
-              fetch_cry.VOICES, {"pikachu": 25, "eevee": 133})
-    sheet.row("no voice named → Pikachu, into pikachu.wav",
+    sheet.row("the partners are exactly Pikachu and Eevee",
+              fetch_cry.PARTNERS, {"pikachu": 25, "eevee": 133})
+    sheet.row("no partner named → Pikachu, into pikachu.wav",
               attempt(lambda: fetch_cry.target("pikachu", None, None)), (25, CRIES / "pikachu.wav"))
-    sheet.row("--voice eevee → dex 133, into eevee.wav",
+    sheet.row("--partner eevee → dex 133, into eevee.wav",
               attempt(lambda: fetch_cry.target("eevee", None, None)), (133, CRIES / "eevee.wav"))
     sheet.row("--dex 16 → into 16.wav, never pikachu.wav",
               attempt(lambda: fetch_cry.target("pikachu", 16, None)), (16, CRIES / "16.wav"))
-    sheet.row("--dex 16 with --voice eevee → the dex wins",
+    sheet.row("--dex 16 with --partner eevee → the dex wins",
               attempt(lambda: fetch_cry.target("eevee", 16, None)), (16, CRIES / "16.wav"))
-    sheet.row("--voice eevee --out x.wav → Eevee, into x.wav",
+    sheet.row("--partner eevee --out x.wav → Eevee, into x.wav",
               attempt(lambda: fetch_cry.target("eevee", None, Path("x.wav"))), (133, Path("x.wav")))
     sheet.row("--dex 16 --out x.wav → 16, into x.wav",
               attempt(lambda: fetch_cry.target("pikachu", 16, Path("x.wav"))), (16, Path("x.wav")))
-    names = {attempt(lambda v=v: fetch_cry.target(v, None, None))[1] for v in fetch_cry.VOICES}
-    sheet.row("each voice has a file of its own", len(names), len(fetch_cry.VOICES))
+    names = {attempt(lambda v=v: fetch_cry.target(v, None, None))[1] for v in fetch_cry.PARTNERS}
+    sheet.row("each partner has a file of its own", len(names), len(fetch_cry.PARTNERS))
 
     sheet.head("the command line")
     with tempfile.TemporaryDirectory() as tmp:
         there = Path(tmp) / "cry.wav"
         there.write_bytes(b"already here")
-        code, said = run("--voice", "eevee", "--out", str(there))
-        sheet.row("--voice eevee onto a file already there → exit 0", code, 0)
+        code, said = run("--partner", "eevee", "--out", str(there))
+        sheet.row("--partner eevee onto a file already there → exit 0", code, 0)
         sheet.row("… says it was kept", "already there — kept" in said, True)
         sheet.row("… and leaves it as it was", there.read_bytes(), b"already here")
-        code, said = run("--voice", "charmander", "--out", str(there))
-        sheet.row("--voice charmander → refused by the command line (exit 2)", code, 2)
-        sheet.row("… naming the voices there are", "eevee" in said and "pikachu" in said, True)
+        code, said = run("--partner", "charmander", "--out", str(there))
+        sheet.row("--partner charmander → refused by the command line (exit 2)", code, 2)
+        sheet.row("… naming the partners there are", "eevee" in said and "pikachu" in said, True)
 
     sheet.head("install.sh")
-    voices = installed_voices(install)
-    sheet.row("fetches every voice, by --voice, and goes on if one fails",
-              sorted(voices), sorted(fetch_cry.VOICES))
+    partners = installed_partners(install)
+    sheet.row("fetches every partner, by --partner, and goes on if one fails",
+              sorted(partners), sorted(fetch_cry.PARTNERS))
     sheet.row("the old Pikachu-only call is gone", "tools/fetch_cry.py ||" in install, False)
 
 
 MUTANTS = [
-    ("--voice ignored", "target", "VOICES[voice]", 'VOICES["pikachu"]'),
+    ("--partner ignored", "target", "PARTNERS[partner]", 'PARTNERS["pikachu"]'),
     ("--dex written over pikachu.wav", "target", 'CRIES / f"{dex}.wav"', 'CRIES / "pikachu.wav"'),
-    ("--out ignored for a voice", "target", 'out or CRIES / f"{voice}.wav"', 'CRIES / f"{voice}.wav"'),
+    ("--out ignored for a partner", "target", 'out or CRIES / f"{partner}.wav"', 'CRIES / f"{partner}.wav"'),
     ("--dex ignored", "target", "if dex is None:", "if True:"),
-    ("install fetches Pikachu only", "install.sh", "for voice in pikachu eevee; do", "for voice in pikachu; do"),
-    ("install stops on a failed fetch", "install.sh", '--voice "$voice" || echo', '--voice "$voice" && echo'),
+    ("install fetches Pikachu only", "install.sh", "for partner in pikachu eevee; do", "for partner in pikachu; do"),
+    ("install stops on a failed fetch", "install.sh", '--partner "$partner" || echo', '--partner "$partner" && echo'),
 ]
 
 

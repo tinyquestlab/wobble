@@ -2,6 +2,9 @@
 
 **Source branch:** main · **Working branch:** main
 **Repo(s):** wobble
+**Renamed 2026-10-07 (task 06):** the choice is the partner, not its voice — `Settings ›
+Partner`, `var/partner`, `fetch_cry.py --partner`, a `partners` block. Below keeps the words it
+was approved with.
 
 ## Context
 

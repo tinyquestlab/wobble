@@ -41,10 +41,10 @@ pool from what happened: how the turn ended, how long it ran, whether it came
 back, whether you are in front of it and still. This file only loads the pools
 and their numbers; which pool a beat gets is the Signaller's.
 
-**A `done` speaks in one partner's voice** (spec 04, task 02). The config's
-`voices` block holds what changes with the partner — `led`, `tint`, `cries` —
-and `load(voice=…)` lays the chosen one over `done`, so everything past this
-file sees the same `Ladder` as before. Every voice is checked at load, not only
+**A `done` speaks as one partner** (spec 04, task 02). The config's
+`partners` block holds what changes with the partner — `led`, `tint`, `cries` —
+and `load(partner=…)` lays the chosen one over `done`, so everything past this
+file sees the same `Ladder` as before. Every partner is checked at load, not only
 the chosen one, so switching to another can never be the moment a typo shows.
 """
 from __future__ import annotations
@@ -64,9 +64,9 @@ CONFIG = Path(__file__).resolve().parents[2] / "config" / "signals.json"
 # apart by editing one of them. `--cry` overrides both at once.
 ROOT = Path(__file__).resolve().parents[2]
 CRIES = ROOT / "assets" / "cries"
-# The partner a run speaks with when nobody chose one: today's voice (spec 04).
-DEFAULT_VOICE = "pikachu"
-CRY = CRIES / f"{DEFAULT_VOICE}.wav"
+# The partner a run speaks with when nobody chose one: the only one before spec 04.
+DEFAULT_PARTNER = "pikachu"
+CRY = CRIES / f"{DEFAULT_PARTNER}.wav"
 
 # What that looks like in the config file. A path would be a second copy of the
 # same fact, free to disagree with `--cry` — which is exactly the divergence
@@ -82,9 +82,9 @@ OUTCOMES = ("caught", "broke_out", "silenced")
 # them. `happy` is the one every beat falls back to, so it is the one required.
 POOLS = ("happy", "proud", "sad", "call", "soft", "greet", "lonely")
 
-# What a voice lays over `done` (spec 04, task 02), and all of it is required:
-# a voice missing one would quietly keep the other partner's.
-VOICE_KEYS = ("led", "tint", "cries")
+# What a partner lays over `done` (spec 04, task 02), and all of it is required:
+# a partner missing one would quietly keep the other's.
+PARTNER_KEYS = ("led", "tint", "cries")
 
 # 199's motor runs for 571 ms (learnings, task 05). An interval under that sends
 # the next beat into a motor that never stopped: one continuous buzz, not a
@@ -208,7 +208,7 @@ class Ladder:
     # front is watched, however long nobody has touched anything.
     idle_s: float = 0.0
     # The partner a `done` speaks with, and every one the config offers (spec
-    # 04). `None` and empty are a config with no `voices` block: Pikachu, fixed.
+    # 04). `None` and empty are a config with no `partners` block: Pikachu, fixed.
     partner: str | None = None
     partners: tuple[str, ...] = ()
     # Things worth saying out loud that are not errors. The core does not print
@@ -273,21 +273,21 @@ class Ladder:
         return None if every is None else last + every
 
 
-def cry_of(voice: str) -> Path:
-    """Where a partner's cry is, as `tools/fetch_cry.py --voice` writes it (spec 04, task 01)."""
-    return CRIES / f"{voice}.wav"
+def cry_of(partner: str) -> Path:
+    """Where a partner's cry is, as `tools/fetch_cry.py --partner` writes it (spec 04, task 01)."""
+    return CRIES / f"{partner}.wav"
 
 
 def load(path: Path | str = CONFIG, *, cry: Path | str | None = None,
-         voice: str = DEFAULT_VOICE) -> Ladder:
+         partner: str = DEFAULT_PARTNER) -> Ladder:
     """Read the config, or refuse with a sentence naming the file and the key.
 
     `cry` is what `"@cry"` resolves to in a `mac_sound` — the daemon passes
     whatever `--cry` points at, so the sound the Mac makes for a `done` is the
     same file the ball is speaking with and cannot be changed on its own.
-    `None` is the chosen voice's own cry.
+    `None` is the chosen partner's own cry.
 
-    `voice` is the partner laid over `done` (spec 04, task 02). One the config
+    `partner` is the one laid over `done` (spec 04, task 02). One the config
     does not list is refused by name, not swapped for another.
     """
     path = Path(path)
@@ -300,17 +300,17 @@ def load(path: Path | str = CONFIG, *, cry: Path | str | None = None,
     except json.JSONDecodeError as exc:
         raise ValueError(f"{path} is not valid JSON: {exc}") from None
 
-    voiced = _voices(raw, path)
-    if voiced is None and voice != DEFAULT_VOICE:
+    by_partner = _partners(raw, path)
+    if by_partner is None and partner != DEFAULT_PARTNER:
         raise ValueError(
-            f"{path} has no 'voices' object, so a done speaks only as "
-            f"{DEFAULT_VOICE}; voice {voice!r} needs one")
-    if voiced is not None and voice not in voiced:
+            f"{path} has no 'partners' object, so a done speaks only as "
+            f"{DEFAULT_PARTNER}; partner {partner!r} needs one")
+    if by_partner is not None and partner not in by_partner:
         raise ValueError(
-            f"{path}: voice {voice!r} is not in 'voices' — the ones there are "
-            f"{', '.join(voiced)}")
+            f"{path}: partner {partner!r} is not in 'partners' — the ones there are "
+            f"{', '.join(by_partner)}")
     if cry is None:
-        cry = cry_of(voice)
+        cry = cry_of(partner)
 
     warnings: list[str] = []
     voices: dict[Kind, Voice] = {}
@@ -330,10 +330,10 @@ def load(path: Path | str = CONFIG, *, cry: Path | str | None = None,
                 f"core can queue has to have a voice, or a signal arrives with "
                 f"nothing to play and fails where nobody can see it")
         _gone(entry, path, kind.value)
-        if kind is Kind.DONE and voiced is not None:
+        if kind is Kind.DONE and by_partner is not None:
             _laid(entry, path, kind.value)
             done = entry
-            entry = {**entry, **voiced[voice]}
+            entry = {**entry, **by_partner[partner]}
         # Read before the voice is built, because the voice carries it.
         every[kind] = _every(entry, path, kind.value, warnings)
         voices[kind] = Voice(effect=_effect(entry, path, kind.value),
@@ -352,11 +352,11 @@ def load(path: Path | str = CONFIG, *, cry: Path | str | None = None,
                 f"ball nothing will say it is still pending after the first beat. "
                 f"Only the menu bar would carry it.")
 
-    # The voices not chosen, through the same checks as the one that was: their
-    # pools may need a number `done` does not carry.
-    for other in (voiced or {}):
-        if other != voice:
-            _moods({**done, **voiced[other]}, path, Kind.DONE.value,
+    # The partners not chosen, through the same checks as the one that was:
+    # their pools may need a number `done` does not carry.
+    for other in (by_partner or {}):
+        if other != partner:
+            _moods({**done, **by_partner[other]}, path, Kind.DONE.value,
                    every[Kind.DONE], times[Kind.DONE])
 
     snooze = raw.get("snooze")
@@ -450,65 +450,65 @@ def load(path: Path | str = CONFIG, *, cry: Path | str | None = None,
         outcome_mutes=outcome_mutes,
         moods=moods,
         idle_s=float(idle_s),
-        partner=None if voiced is None else voice,
-        partners=tuple(voiced or ()),
+        partner=None if by_partner is None else partner,
+        partners=tuple(by_partner or ()),
         warnings=warnings,
     )
 
 
-def _voices(raw: dict, path: Path) -> dict[str, dict] | None:
+def _partners(raw: dict, path: Path) -> dict[str, dict] | None:
     """The partners a `done` may speak with (spec 04, task 02), or `None` when
     the config has none. Each is checked whole here, under its own name, so a
-    refusal points at `voices.eevee` and not at the `done` it was laid over.
+    refusal points at `partners.eevee` and not at the `done` it was laid over.
 
     A name is lower-case letters only: it becomes a file name (`cry_of`) and
-    the word kept in `var/voice`.
+    the word kept in `var/partner`.
     """
-    block = raw.get("voices")
+    block = raw.get("partners")
     if block is None:
         return None
     if not isinstance(block, dict):
         raise ValueError(
-            f"{path}: 'voices' is {block!r}; it has to be an object naming each "
+            f"{path}: 'partners' is {block!r}; it has to be an object naming each "
             f"partner a done may speak with")
-    voiced: dict[str, dict] = {}
+    by_partner: dict[str, dict] = {}
     for name, held in block.items():
         if name.startswith("_"):
             continue
-        where = f"voices.{name}"
+        where = f"partners.{name}"
         if not name.isascii() or not name.isalpha() or not name.islower():
             raise ValueError(
-                f"{path}: {where} is not a voice's name — lower-case letters only, "
+                f"{path}: {where} is not a partner's name — lower-case letters only, "
                 f"since it names the cry's file")
         if not isinstance(held, dict):
             raise ValueError(f"{path}: {where} is {held!r}; it has to be an object")
         for key in held:
-            if not key.startswith("_") and key not in VOICE_KEYS:
+            if not key.startswith("_") and key not in PARTNER_KEYS:
                 raise ValueError(
-                    f"{path}: {where}.{key} is not a voice's — a voice holds "
-                    f"{', '.join(VOICE_KEYS)}, and the rest of done is the same for both")
-        for key in VOICE_KEYS:
+                    f"{path}: {where}.{key} is not a partner's — a partner holds "
+                    f"{', '.join(PARTNER_KEYS)}, and the rest of done is the same for both")
+        for key in PARTNER_KEYS:
             if key not in held:
                 raise ValueError(
-                    f"{path}: {where} has no '{key}'; without it this voice would "
+                    f"{path}: {where} has no '{key}'; without it this partner would "
                     f"keep another's, and nothing would say so")
         _led(held, path, where)
         _tint(held, path, where)
         _pools(held["cries"], path, where)
-        voiced[name] = {key: held[key] for key in VOICE_KEYS}
-    if not voiced:
+        by_partner[name] = {key: held[key] for key in PARTNER_KEYS}
+    if not by_partner:
         raise ValueError(
-            f"{path}: 'voices' names no voice; leave it out for Pikachu alone")
-    return voiced
+            f"{path}: 'partners' names no partner; leave it out for Pikachu alone")
+    return by_partner
 
 
 def _laid(entry: dict, path: Path, where: str) -> None:
-    """Refuse a `done` that still holds what a voice lays over it: two copies
+    """Refuse a `done` that still holds what a partner lays over it: two copies
     of one colour would load, and only one of them would be the one shown."""
-    for key in VOICE_KEYS:
+    for key in PARTNER_KEYS:
         if key in entry:
             raise ValueError(
-                f"{path}: {where}.{key} is also in each voice — with a 'voices' "
+                f"{path}: {where}.{key} is also in each partner — with a 'partners' "
                 f"object it lives there, and one here would be ignored")
 
 
@@ -624,7 +624,7 @@ def _moods(entry: dict, path: Path, where: str, every: float | None,
 
 def _pools(value, path: Path, where: str) -> dict[str, tuple[int, ...]]:
     """The cries under `where`, by mood, checked: the pools half of `_moods`,
-    on its own so each voice's are read under that voice's name (spec 04)."""
+    on its own so each partner's are read under that partner's name (spec 04)."""
     if isinstance(value, list):
         raise ValueError(
             f"{path}: {where}.cries is a list; since task 64 it is an object naming "
