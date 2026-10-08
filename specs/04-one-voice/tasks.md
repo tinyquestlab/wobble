@@ -1,6 +1,6 @@
 # Tasks — S04
 
-**3 of 6 done · next: 04 — `Settings › Voice` in the menu**
+**4 of 6 done · next: 05 — docs**
 
 - [x] **01 — fetch both cries by name, and measure Eevee's.** `tools/fetch_cry.py --voice
   pikachu|eevee` writes `assets/cries/<voice>.wav` (`--dex` stays, for anything else);
@@ -29,9 +29,14 @@
   signaller and `Ball.revoice`. `--cry` given fixes the voice and `var/voice` is not read.
   `check_daemon_edges` "the voices": 24 rows, 11 mutants; `check_ball_worker`: 4 rows,
   3 mutants (a change mid-upload stays stale).
-- [ ] **04 — `Settings › Voice` in the menu.** A *Voice* header and two `Checked` lines under the
+- [x] **04 — `Settings › Voice` in the menu.** A *Voice* header and two `Checked` lines under the
   permissions, login last; greyed with a reason for a cry not fetched or a custom `--cry`.
   `check_menubar` rows + mutants.
+
+  Done 2026-10-07: a click writes `var/voice` aside and moves it in, then takes the voice at
+  once rather than at the next 2 s read. A click is checked like a hand edit (`chosen_voice`).
+  Under `--cry` neither line is checked. `check_menubar`: 9 rows, 6 mutants;
+  `check_daemon_edges` "the voice menu": 10 rows, 9 mutants.
 - [ ] **05 — docs.** README (choosing the voice; install fetches both), ROADMAP phase 04 status,
   DESK-CHECKS Part B step 32 (Eevee by ear on the new ball, the beige, `129` after a switch, the
   choice across a restart).

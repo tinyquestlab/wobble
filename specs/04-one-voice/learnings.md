@@ -29,6 +29,13 @@
   moved.
 - 2026-10-07: `--cry` now defaults to None, because the daemon must tell "not given" from
   "given as pikachu.wav". Given, it fixes the voice for the run.
+- 2026-10-07: task 04's click goes through the same `chosen_voice` as a hand edit, so a greyed
+  line clicked anyway (or a cry deleted between the menu and the click) is refused, not kept.
+  The file is written aside and moved in, so the 2 s read never sees half a name.
+- 2026-10-07: the edge harness reads `WOBBLE_VOICE_EVERY_S`. At 0.2 s a click left for the
+  next read looked the same as one taken at once; at 30 s only the click can make the change.
+- 2026-10-07: under `--cry` neither voice line is checked, even for `--cry pikachu.wav`. A CHOICE:
+  the run's cry is the flag's, and a ✓ would say the menu could change it.
 
 ## Concepts learned
 

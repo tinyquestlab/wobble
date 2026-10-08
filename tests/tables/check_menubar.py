@@ -53,6 +53,10 @@ opens its pane, and a `⚠` last in the title, drawn ball or not; what was never
 asked or cannot be read is never an alert and never checked; and a change only
 the submenu sees still rebuilds the menu.
 
+And `Settings › Voice` (spec 04): the partners under the permissions, login
+still last, a ✓ on the one in use, and one that cannot be chosen greyed with
+why — its cry never fetched, or a `--cry` given — and never clicked.
+
 Plus the seam rule, mechanically: a mirror may name the seam and may not name an
 OS. CLAUDE.md states it in prose, and prose is what loses to a convenient import
 at 11pm.
@@ -647,6 +651,116 @@ def permissions_in_their_own_order(*a, **kw) -> list:
     """The alerts sorted by name, not in the seam's worst-loss-first order."""
     permissions = dict(sorted((kw.get("permissions") or {}).items()))
     return items(*a, **{**kw, "permissions": permissions})
+
+
+# The daemon's `{partner: why not}` (spec 04, task 04).
+VOICES = {"pikachu": None, "eevee": None}
+UNFETCHED = "not fetched · tools/fetch_cry.py --voice eevee"
+FIXED = {name: "not while --cry pidgey.wav is given" for name in VOICES}
+
+
+def voice_part(menu: list) -> list:
+    """`Settings ›` from its `Voice` header to the separator or the end."""
+    part = settings_part(menu)
+    start = next((i for i, (label, _) in enumerate(part) if label == "Voice"), len(part))
+    end = next((i for i in range(start, len(part)) if part[i] == SEPARATOR), len(part))
+    return part[start:end]
+
+
+def voice_rows(make, quiet: bool = False) -> bool:
+    """`Settings › Voice`: the partners, a ✓ on the one in use, greyed with why (spec 04)."""
+    sheet = Sheet(quiet)
+    if not quiet:
+        print("\n  Settings › Voice: Pikachu or Eevee (spec 04)")
+    chosen: list = []
+    menu = make(True, permissions=GRANTED, login=LOGIN_ON, on_login=lambda: None,
+                voices=VOICES, voice="eevee", on_voice=chosen.append)
+    sheet.row("under the permissions, a header and both partners, login last",
+              kinded(settings_part(menu))[3:],
+              [("Checked", "Automation · Terminal — B picks the tab"), ("NoneType", None),
+               ("str", "Voice"), ("str", "Pikachu"), ("Checked", "Eevee"),
+               ("NoneType", None), ("Checked", "Open wobble at login")])
+    part = voice_part(menu)
+    sheet.row("the header is to read, and both lines click",
+              [h is None for _, h in part], [True, False, False])
+    for _, handler in part[1:]:
+        (handler or (lambda: chosen.append("<nothing to click>")))()
+    sheet.row("…each one choosing its own partner", chosen, ["pikachu", "eevee"])
+    sheet.row("the ✓ is on the voice in use, whichever it is",
+              kinded(voice_part(make(True, voices=VOICES, voice="pikachu")))[1:],
+              [("Checked", "Pikachu"), ("str", "Eevee")])
+    chosen.clear()
+    part = voice_part(make(True, voices={**VOICES, "eevee": UNFETCHED}, voice="pikachu",
+                           on_voice=chosen.append))
+    sheet.row("a cry never fetched: greyed, and says how to fetch it",
+              [(type(label).__name__, label, h) for label, h in part[2:]],
+              [("str", f"Eevee — {UNFETCHED}", None)])
+    sheet.row("the one beside it still clicks",
+              [h is not None for _, h in part[1:2]], [True])
+    sheet.row("a --cry given: both greyed with why, neither checked",
+              [(type(label).__name__, label, h) for label, h in
+               voice_part(make(True, voices=FIXED, voice=None, on_voice=chosen.append))[1:]],
+              [("str", "Pikachu — not while --cry pidgey.wav is given", None),
+               ("str", "Eevee — not while --cry pidgey.wav is given", None)])
+    sheet.row("voices alone: Settings › with no separator above the header",
+              kinded(settings_part(make(True, voices=VOICES, voice="pikachu"))),
+              [("str", "Voice"), ("Checked", "Pikachu"), ("str", "Eevee")])
+    sheet.row("no partners in the config: Settings › as before",
+              make(True, login=LOGIN_ON, voices={}, voice="pikachu"), make(True, login=LOGIN_ON))
+    return sheet.ok()
+
+
+def _is_voice(label, kw) -> bool:
+    return str(label).split(" — ")[0].lower() in (kw.get("voices") or {})
+
+
+def voices_never_checked(*a, **kw) -> list:
+    """The voice in use drawn as plain words: nothing says which one speaks."""
+    return _lines(items(*a, **kw), lambda label, h: (
+        str(label) if _is_voice(label, kw) else label, h))
+
+
+def voice_checked_by_place(*a, **kw) -> list:
+    """The ✓ always on the first line, whatever the daemon says is in use."""
+    voices = kw.get("voices") or {}
+    return items(*a, **{**kw, "voice": next(iter(voices), None)})
+
+
+def voice_greyed_still_clicks(*a, **kw) -> list:
+    """A cry never fetched greyed in words but wired to the click all the same."""
+    return _lines(items(*a, **kw), lambda label, h: (
+        label, _choose(kw.get("on_voice"), str(label).split(" — ")[0].lower())
+        if _is_voice(label, kw) else h))
+
+
+def voices_all_choose_the_last(*a, **kw) -> list:
+    """Every line choosing whichever partner was listed last: the late-binding bug."""
+    last = list(kw.get("voices") or {})[-1:] or [None]
+    return _lines(items(*a, **kw), lambda label, h: (
+        label, _choose(kw.get("on_voice"), last[0]) if _is_voice(label, kw) and h else h))
+
+
+def voice_why_unsaid(*a, **kw) -> list:
+    """A greyed line with no reason: a voice that cannot be chosen, and no hint why."""
+    return _lines(items(*a, **kw), lambda label, h: (
+        type(label)(str(label).split(" — ")[0]) if _is_voice(label, kw) else label, h))
+
+
+def voices_below_login(*a, **kw) -> list:
+    """The voice lines after the login switch, which is no longer last."""
+    menu = items(*a, **kw)
+    out = []
+    for label, h in menu:
+        if isinstance(label, Submenu) and kw.get("login") is not None:
+            voice = [line for line in h if line[0] == "Voice" or _is_voice(line[0], kw)]
+            rest = [line for line in h if line not in voice]
+            h = rest + voice
+        out.append((label, h))
+    return out
+
+
+def _choose(on_voice, name):
+    return None if on_voice is None or name is None else (lambda: on_voice(name))
 
 
 def _restored() -> tuple:
@@ -1266,6 +1380,7 @@ def main() -> int:
     ok &= silence_rows(items)
     ok &= login_rows(items)
     ok &= permission_rows(items)
+    ok &= voice_rows(items)
 
     print("\n  --no-menubar puts nothing in the menu bar at all")
     null.CALLS.clear()
@@ -1408,6 +1523,18 @@ def main() -> int:
          lambda: permission_rows(never_asked_as_refused, quiet=True)),
         ("the alerts in an order of the menu's own",
          lambda: permission_rows(permissions_in_their_own_order, quiet=True)),
+        ("the voice in use never checked (spec 04)",
+         lambda: voice_rows(voices_never_checked, quiet=True)),
+        ("the ✓ on the first voice, whichever is in use",
+         lambda: voice_rows(voice_checked_by_place, quiet=True)),
+        ("a greyed voice that still clicks",
+         lambda: voice_rows(voice_greyed_still_clicks, quiet=True)),
+        ("every voice line choosing the last one",
+         lambda: voice_rows(voices_all_choose_the_last, quiet=True)),
+        ("a greyed voice with no reason",
+         lambda: voice_rows(voice_why_unsaid, quiet=True)),
+        ("the voices below the login switch",
+         lambda: voice_rows(voices_below_login, quiet=True)),
     )
     for label, run in controls:
         survived = run()

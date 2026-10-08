@@ -1250,6 +1250,28 @@ async def run(args) -> int:
         say("voice", f"{name.capitalize()} now, with {cry_of(name).name} and led "
                      f"{ladder.voices[Kind.DONE].led} — {cries()}")
 
+    def voice_lines() -> dict[str, str | None]:
+        """Each partner for `Settings › Voice`, with why it cannot be chosen (spec 04, task 04)."""
+        if args.cry is not None:
+            return {name: f"not while --cry {Path(args.cry).name} is given"
+                    for name in ladder.partners}
+        return {name: None if cry_of(name).is_file() else
+                f"not fetched · tools/fetch_cry.py --voice {name}" for name in ladder.partners}
+
+    def choose_voice(name: str) -> None:
+        """A voice line clicked: kept in `var/voice`, and taken now, not at the next read (task 04)."""
+        # Written aside and moved in, so the 2 s read never sees half a name.
+        new = voice_file.with_name(f".{VOICE_NAME}.new")
+        try:
+            new.write_text(f"{name}\n")
+            os.replace(new, voice_file)
+        except OSError as exc:
+            new.unlink(missing_ok=True)
+            say("VOICE NOT KEPT", f"{voice_file} could not be written ({exc}). "
+                                  f"The voice is {partner.capitalize()}")
+            return
+        revoice(*chosen_voice(voice_file, tuple(ladders)))
+
     # What the menu's rows said last, status words without the countdown, so the
     # log gets a line when one changes and not every poll (task 36).
     said_menu: tuple = ()
@@ -1403,7 +1425,10 @@ async def run(args) -> int:
             login=login,
             on_login=switch_login,
             permissions=read_permissions(now),
-            on_permission=open_permission)
+            on_permission=open_permission,
+            voices=voice_lines(),
+            voice=partner if args.cry is None else None,
+            on_voice=choose_voice)
 
     def attended(taken: Taken, how: str) -> None:
         """What happens after the core was told, whichever door told it.

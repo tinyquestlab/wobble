@@ -25,7 +25,7 @@ TABLES = [
     ("link_log", 11),
     ("ball_mirror", 72),
     pytest.param("ball_worker", 113, marks=slow),
-    ("menubar", 212),
+    ("menubar", 227),
     ("own_sounds", 18),
     ("fetch_cry", 21),
     ("seam", 65),
@@ -54,6 +54,6 @@ def test_watching(run_table):
 @slow
 def test_daemon_edges(run_table):
     """Its scenarios and its seventy mutants, in five slices side by side (task 79)."""
-    run_table("daemon_edges", 277, parts=[["--part", "scenarios"]]
+    run_table("daemon_edges", 296, parts=[["--part", "scenarios"]]
               + [["--part", f"mutants:{i}/4"] for i in range(4)],
               timeout=900)   # ~385 s here; a CI runner is slower

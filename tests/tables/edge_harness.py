@@ -27,10 +27,12 @@ the check can move the world while the daemon runs:
     perms        {"<kind>": [state, why]}: what Permissions reads, in that order;
                  none is no permission at all, as on the null seam (spec 03)
     permission   a kind: its menu line clicked; the pane is printed FAKEPANE
+    choose       a partner: its `Settings › Voice` line clicked, greyed or not (spec 04)
     cries/       present: where each partner's cry is looked for, in place of
                  assets/cries/, so a cry fetched or not is the check's (spec 04)
 
-Every title the menu bar is handed is printed FAKETITLE, once per change.
+Every title the menu bar is handed is printed FAKETITLE, once per change, and
+what `Settings › Voice` is handed FAKEVOICES, `[in use, {partner: why not}]` in JSON.
 
 Nothing here ever touches Claude Code's folder: the registry and the
 transcripts are both replaced. `WOBBLE_MUTANT` names one rule to break, and `WOBBLE_PATCH`
@@ -245,7 +247,8 @@ daemon.APPROVED_EVERY_S = 0.2
 daemon.TABS_EVERY_S = 0.2
 daemon.QUIT_GRACE_S = 0.6
 daemon.PERMISSIONS_EVERY_S = 0.2
-daemon.VOICE_EVERY_S = 0.2
+# Spec 04, task 04: a long read, so a click taken at once is told from one the next read took.
+daemon.VOICE_EVERY_S = float(os.environ.get("WOBBLE_VOICE_EVERY_S", "0.2"))
 
 if os.environ.get("WOBBLE_CONFIG"):
     from src.core import ladder
@@ -258,6 +261,8 @@ if (BOX / "cries").is_dir():
 _attend = []
 _silence = []
 _permission = []
+_voice = []
+_voices_shown = []
 _items = daemon.menubar_items
 
 
@@ -265,12 +270,17 @@ def _capture(*args, **kwargs):
     _attend[:] = [kwargs["on_attend"]]
     _silence[:] = [kwargs["on_silence"]] if kwargs.get("on_silence") else []
     _permission[:] = [kwargs["on_permission"]] if kwargs.get("on_permission") else []
+    _voice[:] = [kwargs["on_voice"]] if kwargs.get("on_voice") else []
+    shown = [kwargs.get("voice"), kwargs.get("voices")]
+    if _voices_shown != [shown]:
+        _voices_shown[:] = [shown]
+        print(f"FAKEVOICES {json.dumps(shown)}", flush=True)
     return _items(*args, **kwargs)
 
 
 def _pump():
     for name, handler in (("aim", _attend), ("silence", _silence),
-                          ("permission", _permission)):
+                          ("permission", _permission), ("choose", _voice)):
         box = BOX / name
         if box.exists() and handler:
             session = box.read_text().strip()
