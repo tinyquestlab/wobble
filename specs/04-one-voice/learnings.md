@@ -19,6 +19,16 @@
 - 2026-10-07: `_voices` first reused the names `given` and `entry`, which made two of
   `check_ladder_refusals`' mutants match twice; they reported NOT APPLIED, not survived. The
   exactly-once rule caught new code shadowing old guards' text.
+- 2026-10-07: task 03 loads every partner's ladder at startup instead of reloading on a change.
+  A reload reads `signals.json` again, so a config edited mid-run would fail with nobody at the
+  terminal, or change the waits halfway. A lookup cannot fail.
+- 2026-10-07: the LED needed no stale mark. `_colour` sends only when the index differs, so
+  Eevee's `1180` goes out on the next write. Only the cry slot is marked stale (`Ball.revoice`).
+- 2026-10-07: a change during an upload was a race: `_put` set the slot to CRY after uploading
+  the old cry. `_put` now keeps the path it started with and leaves the slot stale if the voice
+  moved.
+- 2026-10-07: `--cry` now defaults to None, because the daemon must tell "not given" from
+  "given as pikachu.wav". Given, it fixes the voice for the run.
 
 ## Concepts learned
 

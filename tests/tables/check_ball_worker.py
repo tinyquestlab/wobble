@@ -85,6 +85,10 @@ REAL_FIND, REAL_OPEN = link_mod.find_ball, link_mod.open_ball
 # send, in order, on every connect.
 CRY_INDEXES = [p[1] for p in resource.cut(resource.normalise_wav(REAL_CRY.read_bytes()),
                                           resource.STROLL_CRY_PREFIX)]
+# The other partner's, for a change of voice (spec 04, task 03).
+OTHER_CRY = ROOT / "assets/cries/eevee.wav"
+OTHER_INDEXES = [p[1] for p in resource.cut(resource.normalise_wav(OTHER_CRY.read_bytes()),
+                                            resource.STROLL_CRY_PREFIX)]
 WORLD: "World | None" = None
 
 
@@ -768,6 +772,44 @@ async def s_reput(m, sheet, v):
     await stop(task)
 
 
+async def s_revoice(m, sheet, v):
+    w = fresh(m, retry=0.3)
+    ball = w.ball
+    w.advertise(0.02)
+    task = asyncio.ensure_future(ball.run())
+    await up(w)
+    said, wired = len(w.said), len(w.wire)
+    ball.revoice(REAL_CRY)
+    await asyncio.sleep(0.1)
+    # ball.py `revoice` — the same cry again is no change.
+    sheet.row("revoiced to the cry it holds: nothing said, nothing sent",
+              (w.labels(said), w.kinds(wired), ball.slot), ([], [], ball_mod.CRY))
+    ball.revoice(OTHER_CRY)
+    await until(lambda: w.labels(said).count("slot") >= 2)
+    await asyncio.sleep(0.03)
+    # Spec 04, task 03: the slot goes stale and the idle wake puts the new cry up.
+    sheet.row("revoiced: the idle wake puts the other cry up, every frame of it",
+              (w.kinds(wired), ball.slot, ball.cry_path),
+              ([("upload", i) for i in OTHER_INDEXES], ball_mod.CRY, OTHER_CRY))
+    said, wired = len(w.said), len(w.wire)
+    w.slow["cry frame"] = 0.02
+    ball.revoice(REAL_CRY)
+    await until(lambda: ball.writing is not None)
+    ball.revoice(OTHER_CRY)
+    await until(lambda: w.labels(said).count("slot") >= 4, 3.0)
+    await asyncio.sleep(0.03)
+    w.slow.clear()
+    # ball.py `_put` — the cry that went up is not the voice any more.
+    stale = next((x for _t, lab, x in w.said[said:] if "went up, but" in x), "")
+    sheet.row("revoiced mid-upload: that upload is not taken for the new cry",
+              (stale, w.kinds(wired)[len(CRY_INDEXES):]),
+              (f"{REAL_CRY.name} went up, but the voice is {OTHER_CRY.name} now, so it "
+               f"goes up again", [("upload", i) for i in OTHER_INDEXES]))
+    sheet.row("…and the slot is the cry once the right one is in",
+              (ball.slot, ball.cry_path), (ball_mod.CRY, OTHER_CRY))
+    await stop(task)
+
+
 async def s_empty_battery(m, sheet, v):
     w = fresh(m, retry=0.3)
     w.battery = b""
@@ -823,6 +865,7 @@ SCENARIOS = (
     ("a catch plays out before the light goes off", s_linger),
     ("frames that are never acked", s_losses),
     ("a cry that did not go up goes up on the next idle wake", s_reput),
+    ("another partner's cry, and a change mid-upload", s_revoice),
     ("a battery that answers with nothing", s_empty_battery),
     ("a cancel is a cancel", s_cancel),
 )
@@ -907,6 +950,13 @@ MUTANTS = (
        "\n            while not")]),
     ("a cry that failed is never put up again",
      [("                elif self.slot != CRY:", "                elif False:")]),
+    ("a change of voice leaves the slot as it was",
+     [("        self.cry_path = Path(cry_path)\n        self.slot = UNKNOWN\n",
+       "        self.cry_path = Path(cry_path)\n")]),
+    ("a change of voice mid-upload taken as done",
+     [("        if path != self.cry_path:\n", "        if False:\n")]),
+    ("the same cry again goes up again",
+     [("        if Path(cry_path) == self.cry_path:\n            return\n", "")]),
     ("lights left on when letting go",
      [("            if not self.wanted:\n                # Let go on purpose",
        "            if False:\n                # Let go on purpose")]),

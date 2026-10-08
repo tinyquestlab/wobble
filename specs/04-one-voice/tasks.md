@@ -1,6 +1,6 @@
 # Tasks — S04
 
-**2 of 6 done · next: 03 — the daemon keeps the voice and changes it live**
+**3 of 6 done · next: 04 — `Settings › Voice` in the menu**
 
 - [x] **01 — fetch both cries by name, and measure Eevee's.** `tools/fetch_cry.py --voice
   pikachu|eevee` writes `assets/cries/<voice>.wav` (`--dex` stays, for anything else);
@@ -19,10 +19,16 @@
   Eevee is led 1180, tint #E6C89A, both GUESSES; every voice is checked at load, chosen or not.
   `Ladder.partner` / `.partners` name them. `check_voices.py`: 46 rows, 16 mutants;
   `check_ladder_refusals` rows moved from `done.cries` to `voices.pikachu.cries`.
-- [ ] **03 — the daemon keeps the voice and changes it live.** `var/voice` (allowlist; anything
+- [x] **03 — the daemon keeps the voice and changes it live.** `var/voice` (allowlist; anything
   else is Pikachu, said); a change reloads the ladder, recomputes the moods' gate, re-points
   `@cry`, and marks the ball's slot and LED stale; said once; the startup `cries` line names the
   voice. Edge harness scenario + mutants.
+
+  Done 2026-10-07: `var/voice` sits beside the events file and is read every 2 s, so a hand
+  edit counts. Every partner's ladder is loaded at startup; a change is a lookup handed to the
+  signaller and `Ball.revoice`. `--cry` given fixes the voice and `var/voice` is not read.
+  `check_daemon_edges` "the voices": 24 rows, 11 mutants; `check_ball_worker`: 4 rows,
+  3 mutants (a change mid-upload stays stale).
 - [ ] **04 — `Settings › Voice` in the menu.** A *Voice* header and two `Checked` lines under the
   permissions, login last; greyed with a reason for a cry not fetched or a custom `--cry`.
   `check_menubar` rows + mutants.

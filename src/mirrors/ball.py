@@ -225,6 +225,19 @@ class Ball:
                                  "sounds back over until you switch it on again")
             self._dropped.set()
 
+    def revoice(self, cry_path: Path) -> None:
+        """Another partner's cry for the slot (spec 04, task 03). Returns at once.
+
+        Not uploaded here: the slot goes stale, and the idle wake puts it up as
+        it puts up a cry that failed, off the notification path — or the next
+        connect does, when there is no link.
+        """
+        if Path(cry_path) == self.cry_path:
+            return
+        self.cry_path = Path(cry_path)
+        self.slot = UNKNOWN
+        self._woken.set()
+
     def quiet(self) -> None:
         """B was pressed.
 
@@ -658,13 +671,13 @@ class Ball:
         state plays half a cry, or the previous one, or nothing, and none of
         those says which happened.
         """
-        what = CRY
+        what, path = CRY, self.cry_path
         try:
-            blob = resource.normalise_wav(self.cry_path.read_bytes())
+            blob = resource.normalise_wav(path.read_bytes())
             payloads = resource.cut(blob, resource.STROLL_CRY_PREFIX)
         except (OSError, ValueError) as exc:
             self.slot = UNKNOWN
-            self.say("NO CRY", f"{self.cry_path}: {exc} — the ball cannot be given a "
+            self.say("NO CRY", f"{path}: {exc} — the ball cannot be given a "
                                f"voice, so a done will cry with whatever it last held")
             return False
 
@@ -685,6 +698,12 @@ class Ball:
             self.say("SLOT UNKNOWN", f"{lost} of {len(payloads)} frame(s) of the {what} "
                                      f"never acked. The ball holds something nobody can "
                                      f"name; the next upload is what clears it.")
+            return False
+        if path != self.cry_path:
+            # Revoiced while the frames were on the wire (spec 04, task 03): the
+            # ball holds the old cry, so the slot stays stale for the next wake.
+            self.say("slot", f"{path.name} went up, but the voice is "
+                             f"{self.cry_path.name} now, so it goes up again")
             return False
         self.slot = what
         # Timed every single time, not sampled. This number is why the cry goes

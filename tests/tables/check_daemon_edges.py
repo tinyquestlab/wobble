@@ -28,7 +28,9 @@ task 87's left and back at the keys, and task 88's re-queue said and each beat
 numbered, and task 89's row per ended signal in the sandbox's `logs/signals.tsv`;
 and spec 03's permissions, each said once per change, a `⚠` in the title while
 one is refused, Terminal closed leaving its refusal standing, and a line's click
-opening its pane, with what is granted scripted (`BOX/perms`).
+opening its pane, with what is granted scripted (`BOX/perms`); and spec 04's
+voice, read from `var/voice` at startup and again while running, a name refused
+by the allowlist, and the cries fetched or not scripted (`BOX/cries`).
 
 Every daemon is the real `src.daemon` run by `tests/tables/edge_harness.py`, on a
 sandbox events file written by the real `tools/hook_event.sh`
@@ -621,7 +623,8 @@ def cries(patch=None):
                                 "181, 230 · proud 32, 34 · sad 21-22 · call 33 · soft 230 · "
                                 "greet 29 · lonely 143. On the old ball these are only a tap: "
                                 "run with --one-cry for 129, the uploaded one"),
-            ("--one-cry", ("--one-cry",), "129 for every done (--one-cry)"),
+            ("--one-cry", ("--one-cry",),
+             "129 for every done, Pikachu's uploaded cry (--one-cry)"),
             # Pidgey's, fetched beside Pikachu's: since task 70 that folder is
             # the only place a --cry may come from.
             ("another --cry", ("--cry", str(ROOT / "assets" / "cries" / "pidgey.wav")),
@@ -643,6 +646,107 @@ def cries(patch=None):
             rows.append(("the banner says how long idle takes, and what it reads now",
                          d.said("idle"), ["a window in front stops counting as looked at "
                                           "after 60s with no key or mouse. Idle right now: 0s"]))
+        rows.append((f"{how}: quits clean", d.stop(), 0))
+    return rows
+
+
+EEVEE = ("a done cries in a mood, from Eevee's own — happy 49, 61, 63, 231 · proud "
+         "61, 63 · sad 50-51 · call 62 · soft 231 · greet 58 · lonely 143. On the old "
+         "ball these are only a tap: run with --one-cry for 129, the uploaded one")
+EEVEE_HAPPY = (49, 61, 63, 231)                     # config/signals.json, spec 04 task 02
+
+
+def voiced(box: Sandbox, world: World, chosen: str | None) -> Path:
+    """Both cries fetched into the sandbox, and `var/voice` holding `chosen` (spec 04)."""
+    cries = world.edge / "cries"
+    cries.mkdir()
+    for name in ("pikachu", "eevee"):
+        (cries / f"{name}.wav").write_bytes(b"RIFF")
+    voice = box.dir / "var" / "voice"
+    if chosen is not None:
+        voice.write_text(chosen)
+    return voice
+
+
+def first_beat(d: Daemon, world: World, project: str) -> list[tuple[int | None, bool]]:
+    """A done fired now: its first beat's effect, and whether it was happy."""
+    world.fire("done", "eeee6666", project)
+    d.wait("play (beat)", project=project)
+    return [(effect_of(s), " · happy — " in s)
+            for s in d.said("play (beat)", project=project)[:1]]
+
+
+def voices(patch=None):
+    """Spec 04, task 03: the voice `var/voice` names, changed live, kept by an allowlist."""
+    rows = []
+    box = Sandbox()
+    world = World(box)
+    voice = voiced(box, world, None)
+    world.set("ball", "letgo")
+    d = Daemon(box, patch=patch)
+    d.wait("restart")
+    rows.append(("no var/voice: Pikachu in the banner, nothing refused",
+                 ([s.startswith("a done cries in a mood, from Pikachu's own")
+                   for s in d.said("cries")], d.said("VOICE NOT KEPT")), ([True], [])))
+    voice.write_text("eevee\n")
+    d.wait("voice")
+    time.sleep(1.0)                             # five reads of the same file
+    rows.append(("eevee written: said once, its cry, its led and its moods",
+                 d.said("voice"), [f"Eevee now, with eevee.wav and led 1180 — {EEVEE}"]))
+    rows.append(("…the ball is handed Eevee's cry, once",
+                 d.lines.count("FAKEBALL voice eevee.wav"), 1))
+    rows.append(("…and the next done cries happy, from Eevee's own",
+                 [(effect in EEVEE_HAPPY, happy)
+                  for effect, happy in first_beat(d, world, "voiced")], [(True, True)]))
+    voice.write_text("charmander")
+    d.wait("voice", "Pikachu now")
+    time.sleep(1.0)
+    rows.append(("charmander written: refused once, and the voice is Pikachu again",
+                 (d.said("VOICE NOT KEPT"), len(d.said("voice", "Pikachu now, with pikachu.wav "
+                                                                "and led 138 — a done cries"))),
+                 ([f"{voice.resolve()} names 'charmander', which is not a voice in the config — the "
+                   f"ones there are pikachu, eevee. The voice is Pikachu"], 1)))
+    rows.append(("…the ball is handed Pikachu's cry back, once",
+                 d.lines.count("FAKEBALL voice pikachu.wav"), 1))
+    (world.edge / "cries" / "eevee.wav").unlink()
+    voice.write_text("eevee")
+    d.wait("VOICE NOT KEPT", "never fetched")
+    time.sleep(1.0)
+    rows.append(("eevee chosen with its cry deleted: refused once, Pikachu kept",
+                 ([s.endswith("— venv/bin/python3 tools/fetch_cry.py --voice eevee. "
+                              "The voice is Pikachu")
+                   for s in d.said("VOICE NOT KEPT", "never fetched")],
+                  len(d.said("voice")), d.lines.count("FAKEBALL voice eevee.wav")),
+                 ([True], 2, 1)))
+    rows.append(("live: quits clean", d.stop(), 0))
+
+    legs = [("eevee kept from the last run", "eevee", (), [EEVEE], [], EEVEE_HAPPY),
+            ("an old name in var/voice", "mewtwo", (),
+             None, ["'mewtwo', which is not a voice in the config — the ones there "
+                    "are pikachu, eevee. The voice is Pikachu"], HAPPY),
+            ("--cry given: var/voice is not read", "eevee",
+             ("--cry", str(ROOT / "assets" / "cries" / "pidgey.wav")),
+             ["129 for every done (--cry is pidgey.wav, and the built-in cries are Pikachu's)"],
+             [], (129,)),
+            ("--one-cry in Eevee's voice", "eevee", ("--one-cry",),
+             ["129 for every done, Eevee's uploaded cry (--one-cry)"], [], (129,))]
+    for how, chosen, args, banner, refused, cries in legs:
+        box = Sandbox()
+        world = World(box)
+        voiced(box, world, chosen)
+        d = Daemon(box, "--no-ball", *args, patch=patch)
+        d.wait("restart")
+        time.sleep(1.0)
+        said = d.said("cries")
+        rows.append((f"{how}: the banner names the voice, nothing changes after",
+                     (said if banner is not None else
+                      [s.startswith("a done cries in a mood, from Pikachu's own")
+                       for s in said], d.said("voice")),
+                     (banner if banner is not None else [True], [])))
+        rows.append((f"{how}: refused at startup only if it must, once",
+                     [s.split(" names ", 1)[-1] for s in d.said("VOICE NOT KEPT")], refused))
+        rows.append((f"{how}: a done's first beat is that voice's",
+                     [effect in cries for effect, _ in first_beat(d, world, "kept")], [True]))
         rows.append((f"{how}: quits clean", d.stop(), 0))
     return rows
 
@@ -1173,7 +1277,7 @@ SCENARIOS = [("restart", restore), ("live loop", live), ("Terminal", terminal),
              ("reference leg: no --notify-anyway",
               lambda patch=None: watching_flag(patch, anyway=False)),
              ("the lock", locks), ("the ball on quit", ball), ("a catch", catch),
-             ("the cries", cries), ("the moods", moods), ("an approved Bash", approved),
+             ("the cries", cries), ("the voices", voices), ("the moods", moods), ("an approved Bash", approved),
              ("alternating B", alternating), ("a glance", glance), ("the silence", silence),
              ("a signal's life", lives), ("the permissions", permissions),
              ("KeyboardInterrupt", interrupted)]
@@ -1239,8 +1343,32 @@ MUTANTS = [
     ("another --cry still given Pikachu's", cries,
      ("signaller.one_cry = args.one_cry or other_voice", "signaller.one_cry = args.one_cry")),
     ("the cries unsaid", cries,
-     ("    if done_moods is not None and not signaller.one_cry:\n        say(\"cries\"",
-      "    if done_moods is not None and not signaller.one_cry:\n        (lambda *a: None)(\"cries\"")),
+     ("    say(\"cries\", cries())", "    (lambda *a: None)(\"cries\", cries())")),
+    ("var/voice never read again", voices,
+     ("if args.cry is None and now >= voice_at + VOICE_EVERY_S:", "if False:")),
+    ("var/voice read under a --cry too", voices,
+     ("if args.cry is None and now >= voice_at + VOICE_EVERY_S:",
+      "if now >= voice_at + VOICE_EVERY_S:")),
+    ("var/voice not read at startup", voices,
+     ("partner, said_refused = (chosen_voice(voice_file, tuple(ladders)) if args.cry is None",
+      "partner, said_refused = ((DEFAULT_VOICE, None) if args.cry is None")),
+    ("a refusal at startup unsaid", voices,
+     ("    if said_refused is not None:\n        say(\"VOICE NOT KEPT\"",
+      "    if False:\n        say(\"VOICE NOT KEPT\"")),
+    ("a refusal said on every read", voices,
+     ("if refused != said_refused:", "if True:")),
+    ("a change never reaches the signaller", voices,
+     ("        signaller.ladder = ladder\n", "")),
+    ("a change never reaches the ball", voices,
+     ("            ball.revoice(cry_of(name))", "            pass")),
+    ("a change unsaid", voices,
+     ("        say(\"voice\", f\"{name.capitalize()} now", "        (lambda *a, **k: None)(\"voice\", f\"{name.capitalize()} now")),
+    ("a voice kept with its cry never fetched", voices,
+     ("if not cry_of(name).is_file():", "if False:")),
+    ("a name the config does not list kept", voices,
+     ("if name not in partners:", "if False:")),
+    ("the banner's voice always Pikachu", voices,
+     ("from {partner.capitalize()}'s own", "from Pikachu's own")),
     ("the mood unsaid on the play line", cries,
      ("            mood = (f\" · {signaller.mood}\" if signaller.mood and not signaller.muted",
       "            mood = (\"\" if True")),

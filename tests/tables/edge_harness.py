@@ -27,6 +27,8 @@ the check can move the world while the daemon runs:
     perms        {"<kind>": [state, why]}: what Permissions reads, in that order;
                  none is no permission at all, as on the null seam (spec 03)
     permission   a kind: its menu line clicked; the pane is printed FAKEPANE
+    cries/       present: where each partner's cry is looked for, in place of
+                 assets/cries/, so a cry fetched or not is the check's (spec 04)
 
 Every title the menu bar is handed is printed FAKETITLE, once per change.
 
@@ -243,10 +245,14 @@ daemon.APPROVED_EVERY_S = 0.2
 daemon.TABS_EVERY_S = 0.2
 daemon.QUIT_GRACE_S = 0.6
 daemon.PERMISSIONS_EVERY_S = 0.2
+daemon.VOICE_EVERY_S = 0.2
 
 if os.environ.get("WOBBLE_CONFIG"):
     from src.core import ladder
-    daemon.load_ladder = lambda cry: ladder.load(os.environ["WOBBLE_CONFIG"], cry=cry)
+    daemon.load_ladder = lambda **kw: ladder.load(os.environ["WOBBLE_CONFIG"], **kw)
+
+if (BOX / "cries").is_dir():
+    daemon.cry_of = lambda voice: BOX / "cries" / f"{voice}.wav"
 
 # A pending-list line, clicked where a real click lands: inside `pump`.
 _attend = []
@@ -303,6 +309,9 @@ class Ball:
 
     def set_wanted(self, on):
         self.wanted = on
+
+    def revoice(self, cry):
+        print(f"FAKEBALL voice {Path(cry).name}", flush=True)
 
 
 if (BOX / "ball").exists():

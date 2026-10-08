@@ -54,7 +54,7 @@ from .core.attention import Attention, Silenced, Standing, Taken
 # `CRY` moved into `core.ladder` in task 24: the config names the same file
 # (`"mac_sound": "@cry"`), and two definitions of one path are two things to
 # keep in step. It is imported rather than redefined for that reason alone.
-from .core.ladder import CRY, ROOT, Ladder, load as load_ladder
+from .core.ladder import CRY, DEFAULT_VOICE, ROOT, Ladder, cry_of, load as load_ladder
 from .core.signals import TERMINAL, VSCODE, WARP, Entry, Kind, Queue, Waiting
 from .hooks import (BASH, EVENTS, HookLine, Running, Tail, Titles, answers, parse,
                     registry, restates, running, runs_bash, short, wiring)
@@ -69,6 +69,10 @@ WIRING_EVERY_S = 30.0
 # fight each other for the ball, and once wobble is an app that also starts at
 # login, a second one started from a terminal is an ordinary afternoon.
 LOCK_NAME = "daemon.lock"
+
+# The partner a done speaks with, kept beside the events file like the lock and
+# the log, so a sandbox daemon never reads or writes the real one (spec 04, task 03).
+VOICE_NAME = "voice"
 
 # How long Quit waits for the ball to let go before going anyway. Not a guess
 # about Bluetooth: `open_ball`'s context manager is what disconnects, and it
@@ -100,6 +104,11 @@ APPROVED_EVERY_S = 1.0
 # four times a second; a grant switched in System Settings is in the menu within
 # this, which is quicker than anybody gets back from the Settings window.
 PERMISSIONS_EVERY_S = 2.0
+
+# How often `var/voice` is read again (spec 04, task 03): a hand edit, or the
+# menu's write in task 04, is heard within this. One small file, so the cost is
+# a stat and a read.
+VOICE_EVERY_S = 2.0
 
 
 def stamp() -> str:
@@ -890,6 +899,32 @@ def own_sounds(ladder: Ladder, folder: Path = OWN_SOUNDS) -> tuple[Ladder, list[
     return replace(ladder, voices=voices, outcomes=outcomes), used, ignored
 
 
+def chosen_voice(path: Path, partners: tuple[str, ...]) -> tuple[str, str | None]:
+    """The partner `path` names, and why not when it cannot be that one (spec 04, task 03).
+
+    An allowlist: a name is kept only when the config lists it and its cry was
+    fetched. Anything else — unreadable, a name no longer listed, a cry deleted —
+    is Pikachu, with the reason, which is the edge the spec settles. No file at
+    all is Pikachu with nothing to say: that is every run before a choice.
+    Pikachu's own cry is not asked for, since there is nothing to fall back to.
+    """
+    try:
+        name = path.read_text().strip()
+    except FileNotFoundError:
+        return DEFAULT_VOICE, None
+    except (OSError, UnicodeDecodeError) as exc:
+        return DEFAULT_VOICE, f"{path} could not be read ({exc})"
+    if name == DEFAULT_VOICE:
+        return name, None
+    if name not in partners:
+        return DEFAULT_VOICE, (f"{path} names {name[:40]!r}, which is not a voice in the "
+                               f"config — the ones there are {', '.join(partners)}")
+    if not cry_of(name).is_file():
+        return DEFAULT_VOICE, (f"{name}'s cry was never fetched ({cry_of(name)}) — "
+                               f"venv/bin/python3 tools/fetch_cry.py --voice {name}")
+    return name, None
+
+
 def claim(events: Path):
     """Take the one lock a daemon on `events` may hold: `(ok, handle, why)`.
 
@@ -945,13 +980,26 @@ async def run(args) -> int:
         say("LOCK NOT HELD", lock_said)
 
     # `--cry` decides both voices at once: the resource uploaded to the ball,
-    # and what `"@cry"` resolves to for the Mac (task 24).
-    ladder = load_ladder(cry=args.cry)
+    # and what `"@cry"` resolves to for the Mac (task 24). Without it the voice
+    # is a partner's, the one `var/voice` names, and every partner's ladder is
+    # loaded now: a change mid-run is a lookup, never a config read that could
+    # fail with nobody at the terminal (spec 04, task 03).
+    ladder = load_ladder(cry=args.cry or cry_of(DEFAULT_VOICE), voice=DEFAULT_VOICE)
     for warning in ladder.warnings:
         say("CONFIG", warning)
     # Said only when the folder holds something: the run without it is the
     # ordinary one, and a file that plays nothing must not pass unseen (task 70).
     ladder, own, not_own = own_sounds(ladder)
+    ladders = {DEFAULT_VOICE: ladder}
+    if args.cry is None:
+        ladders.update({name: own_sounds(load_ladder(cry=cry_of(name), voice=name))[0]
+                        for name in ladder.partners if name != DEFAULT_VOICE})
+    voice_file = Path(args.events).expanduser().resolve().parent / VOICE_NAME
+    partner, said_refused = (chosen_voice(voice_file, tuple(ladders)) if args.cry is None
+                             else (DEFAULT_VOICE, None))
+    if said_refused is not None:
+        say("VOICE NOT KEPT", f"{said_refused}. The voice is {partner.capitalize()}")
+    ladder = ladders[partner]
     if own:
         say("your sounds", f"on the Mac only, from {OWN_SOUNDS}: " + " · ".join(own))
     if not_own:
@@ -964,9 +1012,10 @@ async def run(args) -> int:
     attention = Attention(queue, snooze=snooze)
     signaller = Signaller(ladder)
     signaller.muted = args.mute
-    # The built-in cries are Pikachu's own, so they go with Pikachu's upload
-    # only: under another `--cry` a done keeps the voice it was given (task 57).
-    other_voice = Path(args.cry).resolve() != CRY.resolve()
+    # The built-in cries are a partner's own, so they go with that partner's
+    # upload only: under another `--cry` a done keeps the voice it was given
+    # (task 57), and the voice stays Pikachu's (spec 04, task 03).
+    other_voice = args.cry is not None and Path(args.cry).resolve() != CRY.resolve()
     signaller.one_cry = args.one_cry or other_voice
     # From the top either way (task 47): `--replay` plays it, and a plain run
     # reads it back quietly just before the loop (`recall`). One reader for
@@ -1038,21 +1087,30 @@ async def run(args) -> int:
                      f"{hush.light}, no sound — until you type in it or answer it"
         if hush is not None else
         "B held silences with nothing to confirm it (no 'outcomes.silenced' in the config)")
+
+    def cries() -> str:
+        """Which ids a done cries with, and whose they are (task 57, spec 04 task 03).
+
+        The banner's line, and a change of voice's: the same sentence, so the
+        log after a change reads like a run started in that voice.
+        """
+        moods = ladder.moods.get(Kind.DONE)
+        fallback = ladder.voices[Kind.DONE].effect
+        if moods is not None and not signaller.one_cry:
+            return (f"a done cries in a mood, from {partner.capitalize()}'s own — "
+                    + " · ".join(f"{name} {_spans(ids)}" for name, ids in moods.pools.items())
+                    + f". On the old ball these are only a tap: run with --one-cry "
+                      f"for {fallback}, the uploaded one")
+        why = ("--one-cry" if args.one_cry else
+               f"--cry is {Path(args.cry).name}, and the built-in cries are Pikachu's"
+               if moods is not None else "no 'cries' for done in the config")
+        whose = "" if other_voice else f", {partner.capitalize()}'s uploaded cry"
+        return f"{fallback} for every done{whose} ({why})"
+
     # Said every run: which ids a done cries with depends on the ball, and the
     # old one plays these as a tap (docs/PROTOCOL.md §6.5).
     done_moods = ladder.moods.get(Kind.DONE)
-    fallback = ladder.voices[Kind.DONE].effect
-    if done_moods is not None and not signaller.one_cry:
-        say("cries", "a done cries in a mood, from Pikachu's own — "
-                     + " · ".join(f"{name} {_spans(ids)}"
-                                  for name, ids in done_moods.pools.items())
-                     + f". On the old ball these are only a tap: run with --one-cry "
-                       f"for {fallback}, the uploaded one")
-    else:
-        why = ("--one-cry" if args.one_cry else
-               f"--cry is {Path(args.cry).name}, and the built-in cries are Pikachu's"
-               if done_moods is not None else "no 'cries' for done in the config")
-        say("cries", f"{fallback} for every done ({why})")
+    say("cries", cries())
     # Said every run, like the waits above (task 64): with it off, a window in
     # front keeps its signal quiet all night.
     said_idle_blind: str | None = None
@@ -1134,8 +1192,9 @@ async def run(args) -> int:
     if args.no_ball:
         say("ball", "not looking for one (--no-ball) — the Mac plays every beat")
     else:
-        ball = Ball(args.cry, on_press=press.set, on_hold=hold.set, say=say)
-        say("ball", f"scanning; its voice will be {Path(args.cry).name}. Press the "
+        cry = Path(args.cry or cry_of(partner))
+        ball = Ball(cry, on_press=press.set, on_hold=hold.set, say=say)
+        say("ball", f"scanning; its voice will be {cry.name}. Press the "
                     f"ball's top button so it advertises.")
         asyncio.create_task(ball.run())
 
@@ -1166,6 +1225,30 @@ async def run(args) -> int:
             "the ball buzzes and lights, and neither surface makes a sound"
             if signaller.muted else
             "both surfaces have their voices back")
+
+    voice_at = time.monotonic()
+
+    def revoice(name: str, refused: str | None) -> None:
+        """Speak as `name` from now on: each change said once, each refusal too (spec 04, task 03).
+
+        The next beat takes the new ladder, moods and colour with it. A light a
+        done already holds keeps its colour until the ball next writes it, the
+        spec's edge case, owed the desk. The ball is handed the new cry, which
+        goes up at its next idle wake, or on the next connect.
+        """
+        nonlocal ladder, partner, said_refused
+        if refused != said_refused:
+            said_refused = refused
+            if refused is not None:
+                say("VOICE NOT KEPT", f"{refused}. The voice is {name.capitalize()}")
+        if name == partner:
+            return
+        partner, ladder = name, ladders[name]
+        signaller.ladder = ladder
+        if ball is not None:
+            ball.revoice(cry_of(name))
+        say("voice", f"{name.capitalize()} now, with {cry_of(name).name} and led "
+                     f"{ladder.voices[Kind.DONE].led} — {cries()}")
 
     # What the menu's rows said last, status words without the countdown, so the
     # log gets a line when one changes and not every poll (task 36).
@@ -2132,6 +2215,11 @@ async def run(args) -> int:
                 ok = ok_now
                 say("HOOKS" if ok else "HOOKS NOT WIRED", sentence_now)
 
+        # Read again rather than told: a hand edit is a change too (spec 04, task 03).
+        if args.cry is None and now >= voice_at + VOICE_EVERY_S:
+            voice_at = now
+            revoice(*chosen_voice(voice_file, tuple(ladders)))
+
         await asyncio.sleep(args.poll)
 
     # Quit, chosen from the menu bar. Everything below is the difference between
@@ -2175,8 +2263,8 @@ def main(argv=None) -> int:
                     help="start with the sounds off: the ball buzzes and lights, "
                          "the Mac stays quiet, and the menu switches it back")
     ap.add_argument("--one-cry", action="store_true",
-                    help="every done cries 129, the uploaded --cry, instead of one of "
-                         "Pikachu's built-in cries — for the old ball, which plays "
+                    help="every done cries 129, the uploaded cry, instead of one of "
+                         "the partner's built-in cries — for the old ball, which plays "
                          "those as a tap (task 57)")
     ap.add_argument("--no-menubar", action="store_true",
                     help="put no item in the menu bar — for a desk run that times "
@@ -2197,17 +2285,18 @@ def main(argv=None) -> int:
     ap.add_argument("--log-days", type=int, default=log.KEEP_DAYS, metavar="N",
                     help=f"how many days of log files to keep, 0 for all "
                          f"(default: {log.KEEP_DAYS})")
-    ap.add_argument("--cry", default=str(CRY), metavar="WAV",
+    ap.add_argument("--cry", default=None, metavar="WAV",
                     help=f"the voice a done is signalled with — the resource uploaded "
                          f"to the ball, and the file the Mac plays when there is no "
-                         f"ball (default: {CRY.name}). Only a cry fetched into "
-                         f"{CRY.parent.relative_to(ROOT)}/ — gitignored and filled at "
-                         f"install time")
+                         f"ball (default: the partner var/{VOICE_NAME} names, else "
+                         f"{CRY.name}). Given, it fixes the voice for the run. Only a "
+                         f"cry fetched into {CRY.parent.relative_to(ROOT)}/ — gitignored "
+                         f"and filled at install time")
     args = ap.parse_args(argv)
     # Only a Pokémon's cry goes to the ball (task 70): it is what sounds in
     # your hand, and wobble's name is on it. Your own sounds are the Mac's,
     # in assets/sounds/.
-    if not Path(args.cry).resolve().is_relative_to(CRY.parent.resolve()):
+    if args.cry is not None and not Path(args.cry).resolve().is_relative_to(CRY.parent.resolve()):
         ap.error(f"--cry {args.cry} is not in {CRY.parent}: the ball speaks only with a "
                  f"cry fetched there (tools/fetch_cry.py). A sound of your own goes in "
                  f"{OWN_SOUNDS}, for the Mac only")
