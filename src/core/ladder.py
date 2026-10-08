@@ -40,6 +40,12 @@ neither — and the daemon's banner says so.
 pool from what happened: how the turn ended, how long it ran, whether it came
 back, whether you are in front of it and still. This file only loads the pools
 and their numbers; which pool a beat gets is the Signaller's.
+
+**A `done` speaks in one partner's voice** (spec 04, task 02). The config's
+`voices` block holds what changes with the partner — `led`, `tint`, `cries` —
+and `load(voice=…)` lays the chosen one over `done`, so everything past this
+file sees the same `Ladder` as before. Every voice is checked at load, not only
+the chosen one, so switching to another can never be the moment a typo shows.
 """
 from __future__ import annotations
 
@@ -57,7 +63,10 @@ CONFIG = Path(__file__).resolve().parents[2] / "config" / "signals.json"
 # a kind says *whatever voice the ball is using*, so the two can never drift
 # apart by editing one of them. `--cry` overrides both at once.
 ROOT = Path(__file__).resolve().parents[2]
-CRY = ROOT / "assets" / "cries" / "pikachu.wav"
+CRIES = ROOT / "assets" / "cries"
+# The partner a run speaks with when nobody chose one: today's voice (spec 04).
+DEFAULT_VOICE = "pikachu"
+CRY = CRIES / f"{DEFAULT_VOICE}.wav"
 
 # What that looks like in the config file. A path would be a second copy of the
 # same fact, free to disagree with `--cry` — which is exactly the divergence
@@ -72,6 +81,10 @@ OUTCOMES = ("caught", "broke_out", "silenced")
 # The moods a kind's cries come in (task 64), by the names the config gives
 # them. `happy` is the one every beat falls back to, so it is the one required.
 POOLS = ("happy", "proud", "sad", "call", "soft", "greet", "lonely")
+
+# What a voice lays over `done` (spec 04, task 02), and all of it is required:
+# a voice missing one would quietly keep the other partner's.
+VOICE_KEYS = ("led", "tint", "cries")
 
 # 199's motor runs for 571 ms (learnings, task 05). An interval under that sends
 # the next beat into a motor that never stopped: one continuous buzz, not a
@@ -194,6 +207,10 @@ class Ladder:
     # counting as looked at (task 64). Zero is the behaviour before it: in
     # front is watched, however long nobody has touched anything.
     idle_s: float = 0.0
+    # The partner a `done` speaks with, and every one the config offers (spec
+    # 04). `None` and empty are a config with no `voices` block: Pikachu, fixed.
+    partner: str | None = None
+    partners: tuple[str, ...] = ()
     # Things worth saying out loud that are not errors. The core does not print
     # (principle 1) and does not swallow (principle 7), so it hands them over.
     warnings: list[str] = field(default_factory=list)
@@ -256,12 +273,22 @@ class Ladder:
         return None if every is None else last + every
 
 
-def load(path: Path | str = CONFIG, *, cry: Path | str = CRY) -> Ladder:
+def cry_of(voice: str) -> Path:
+    """Where a partner's cry is, as `tools/fetch_cry.py --voice` writes it (spec 04, task 01)."""
+    return CRIES / f"{voice}.wav"
+
+
+def load(path: Path | str = CONFIG, *, cry: Path | str | None = None,
+         voice: str = DEFAULT_VOICE) -> Ladder:
     """Read the config, or refuse with a sentence naming the file and the key.
 
     `cry` is what `"@cry"` resolves to in a `mac_sound` — the daemon passes
     whatever `--cry` points at, so the sound the Mac makes for a `done` is the
     same file the ball is speaking with and cannot be changed on its own.
+    `None` is the chosen voice's own cry.
+
+    `voice` is the partner laid over `done` (spec 04, task 02). One the config
+    does not list is refused by name, not swapped for another.
     """
     path = Path(path)
     try:
@@ -272,6 +299,18 @@ def load(path: Path | str = CONFIG, *, cry: Path | str = CRY) -> Ladder:
             f"tuning file, and nothing can be played without it") from None
     except json.JSONDecodeError as exc:
         raise ValueError(f"{path} is not valid JSON: {exc}") from None
+
+    voiced = _voices(raw, path)
+    if voiced is None and voice != DEFAULT_VOICE:
+        raise ValueError(
+            f"{path} has no 'voices' object, so a done speaks only as "
+            f"{DEFAULT_VOICE}; voice {voice!r} needs one")
+    if voiced is not None and voice not in voiced:
+        raise ValueError(
+            f"{path}: voice {voice!r} is not in 'voices' — the ones there are "
+            f"{', '.join(voiced)}")
+    if cry is None:
+        cry = cry_of(voice)
 
     warnings: list[str] = []
     voices: dict[Kind, Voice] = {}
@@ -291,6 +330,10 @@ def load(path: Path | str = CONFIG, *, cry: Path | str = CRY) -> Ladder:
                 f"core can queue has to have a voice, or a signal arrives with "
                 f"nothing to play and fails where nobody can see it")
         _gone(entry, path, kind.value)
+        if kind is Kind.DONE and voiced is not None:
+            _laid(entry, path, kind.value)
+            done = entry
+            entry = {**entry, **voiced[voice]}
         # Read before the voice is built, because the voice carries it.
         every[kind] = _every(entry, path, kind.value, warnings)
         voices[kind] = Voice(effect=_effect(entry, path, kind.value),
@@ -308,6 +351,13 @@ def load(path: Path | str = CONFIG, *, cry: Path | str = CRY) -> Ladder:
                 f"{path}: {kind.value} plays once and holds no light, so on the "
                 f"ball nothing will say it is still pending after the first beat. "
                 f"Only the menu bar would carry it.")
+
+    # The voices not chosen, through the same checks as the one that was: their
+    # pools may need a number `done` does not carry.
+    for other in (voiced or {}):
+        if other != voice:
+            _moods({**done, **voiced[other]}, path, Kind.DONE.value,
+                   every[Kind.DONE], times[Kind.DONE])
 
     snooze = raw.get("snooze")
     if not isinstance(snooze, dict) or "after_s" not in snooze:
@@ -400,8 +450,66 @@ def load(path: Path | str = CONFIG, *, cry: Path | str = CRY) -> Ladder:
         outcome_mutes=outcome_mutes,
         moods=moods,
         idle_s=float(idle_s),
+        partner=None if voiced is None else voice,
+        partners=tuple(voiced or ()),
         warnings=warnings,
     )
+
+
+def _voices(raw: dict, path: Path) -> dict[str, dict] | None:
+    """The partners a `done` may speak with (spec 04, task 02), or `None` when
+    the config has none. Each is checked whole here, under its own name, so a
+    refusal points at `voices.eevee` and not at the `done` it was laid over.
+
+    A name is lower-case letters only: it becomes a file name (`cry_of`) and
+    the word kept in `var/voice`.
+    """
+    block = raw.get("voices")
+    if block is None:
+        return None
+    if not isinstance(block, dict):
+        raise ValueError(
+            f"{path}: 'voices' is {block!r}; it has to be an object naming each "
+            f"partner a done may speak with")
+    voiced: dict[str, dict] = {}
+    for name, held in block.items():
+        if name.startswith("_"):
+            continue
+        where = f"voices.{name}"
+        if not name.isascii() or not name.isalpha() or not name.islower():
+            raise ValueError(
+                f"{path}: {where} is not a voice's name — lower-case letters only, "
+                f"since it names the cry's file")
+        if not isinstance(held, dict):
+            raise ValueError(f"{path}: {where} is {held!r}; it has to be an object")
+        for key in held:
+            if not key.startswith("_") and key not in VOICE_KEYS:
+                raise ValueError(
+                    f"{path}: {where}.{key} is not a voice's — a voice holds "
+                    f"{', '.join(VOICE_KEYS)}, and the rest of done is the same for both")
+        for key in VOICE_KEYS:
+            if key not in held:
+                raise ValueError(
+                    f"{path}: {where} has no '{key}'; without it this voice would "
+                    f"keep another's, and nothing would say so")
+        _led(held, path, where)
+        _tint(held, path, where)
+        _pools(held["cries"], path, where)
+        voiced[name] = {key: held[key] for key in VOICE_KEYS}
+    if not voiced:
+        raise ValueError(
+            f"{path}: 'voices' names no voice; leave it out for Pikachu alone")
+    return voiced
+
+
+def _laid(entry: dict, path: Path, where: str) -> None:
+    """Refuse a `done` that still holds what a voice lays over it: two copies
+    of one colour would load, and only one of them would be the one shown."""
+    for key in VOICE_KEYS:
+        if key in entry:
+            raise ValueError(
+                f"{path}: {where}.{key} is also in each voice — with a 'voices' "
+                f"object it lives there, and one here would be ignored")
 
 
 def _outcomes(raw: dict, path: Path, cry: Path | str) -> tuple[dict[str, Voice], dict[str, int]]:
@@ -487,7 +595,36 @@ def _moods(entry: dict, path: Path, where: str, every: float | None,
     the pick without saying so. A pool that needs a number refuses to load
     without it, because one that can never be chosen would look in charge.
     """
-    value = entry["cries"]
+    pools = _pools(entry["cries"], path, where)
+    long_turn = _seconds(entry, path, where, "long_turn_s", "proud" in pools,
+                         "how long a turn runs before its done is proud")
+    lonely = _seconds(entry, path, where, "lonely_after_s", "lonely" in pools,
+                      "how long after the first beat a done nobody came to is lonely")
+    greet = _seconds(entry, path, where, "greet_lasts_s", False,
+                     "how long the greet plays before anything is sent over it")
+    greet_quiet = _seconds(entry, path, where, "greet_quiet_s", False,
+                           "how long after anything played a greet stays silent")
+    greet_away = _seconds(entry, path, where, "greet_away_s", False,
+                          "how long away from the keys counts as coming back")
+    if lonely is not None:
+        if times is None:
+            raise ValueError(
+                f"{path}: {where}.cries.lonely is a beat after the last one, and "
+                f"{where}.times is null — there is no last one")
+        last = (every or 0.0) * (times - 1)
+        if lonely <= last:
+            raise ValueError(
+                f"{path}: {where}.lonely_after_s is {lonely:g}s, and the last of "
+                f"{where}'s {times} beats is {last:g}s after the first — lonely is "
+                f"the beat after them, so it has to come later")
+    return Moods(pools=pools, long_turn_s=long_turn, lonely_after_s=lonely,
+                 greet_lasts_s=greet, greet_quiet_s=greet_quiet,
+                 greet_away_s=greet_away)
+
+
+def _pools(value, path: Path, where: str) -> dict[str, tuple[int, ...]]:
+    """The cries under `where`, by mood, checked: the pools half of `_moods`,
+    on its own so each voice's are read under that voice's name (spec 04)."""
     if isinstance(value, list):
         raise ValueError(
             f"{path}: {where}.cries is a list; since task 64 it is an object naming "
@@ -527,31 +664,7 @@ def _moods(entry: dict, path: Path, where: str, every: float | None,
         raise ValueError(
             f"{path}: {where}.cries has no 'happy'; it is the pool every beat falls "
             f"back to, so the others cannot stand without it")
-
-    long_turn = _seconds(entry, path, where, "long_turn_s", "proud" in pools,
-                         "how long a turn runs before its done is proud")
-    lonely = _seconds(entry, path, where, "lonely_after_s", "lonely" in pools,
-                      "how long after the first beat a done nobody came to is lonely")
-    greet = _seconds(entry, path, where, "greet_lasts_s", False,
-                     "how long the greet plays before anything is sent over it")
-    greet_quiet = _seconds(entry, path, where, "greet_quiet_s", False,
-                           "how long after anything played a greet stays silent")
-    greet_away = _seconds(entry, path, where, "greet_away_s", False,
-                          "how long away from the keys counts as coming back")
-    if lonely is not None:
-        if times is None:
-            raise ValueError(
-                f"{path}: {where}.cries.lonely is a beat after the last one, and "
-                f"{where}.times is null — there is no last one")
-        last = (every or 0.0) * (times - 1)
-        if lonely <= last:
-            raise ValueError(
-                f"{path}: {where}.lonely_after_s is {lonely:g}s, and the last of "
-                f"{where}'s {times} beats is {last:g}s after the first — lonely is "
-                f"the beat after them, so it has to come later")
-    return Moods(pools=pools, long_turn_s=long_turn, lonely_after_s=lonely,
-                 greet_lasts_s=greet, greet_quiet_s=greet_quiet,
-                 greet_away_s=greet_away)
+    return pools
 
 
 def _seconds(entry: dict, path: Path, where: str, key: str, needed: bool,

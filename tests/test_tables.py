@@ -14,6 +14,7 @@ TABLES = [
     ("queue", 27),
     ("ladder", 47),
     ("ladder_refusals", 92),
+    ("voices", 46),
     ("cries", 88),
     ("mute", 35),
     ("hooks", 109),
